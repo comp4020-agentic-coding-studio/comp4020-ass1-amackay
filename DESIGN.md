@@ -96,12 +96,11 @@ throws loudly at startup.
 - Design-study palette: variable chips (`ph`, `ps`), `wi`, `ax-1`.
 - Prototype palette: variable chips, `wn`, `wi`, `ax-1`, `ax-2`, `ax-3`,
   `ax-mp` (first block with a lock slot).
-- **Commit `reference/set.mm-excerpt.txt`** — the `$c`/`$v`/`$f` declarations
-  and those statements only, with upstream version and retrieval date in a
-  header. Not all of set.mm: ~45 MB, slows every CI checkout and the
-  full-history secret scan, and nothing reads it at runtime. Then test the
-  palette's tokens against the excerpt, so "matches set.mm exactly" is a sensor
-  rather than a comment.
+- Source of truth is `reference/set.mm-propcalc.mm` (see `reference/README.md`)
+  — set.mm through the end of propositional calculus, byte-verbatim, 614 KB,
+  `$d`-free throughout and verified standalone by `reference/mmverify.py`.
+  **Test the palette's tokens against it**, so "matches set.mm exactly" is a
+  sensor rather than a comment.
 
 ## ⟨OPEN⟩ Design decisions
 
