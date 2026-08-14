@@ -1,0 +1,26 @@
+{
+  "variables": [
+    { "label": "wph", "var": "ph", "typecode": "wff" },
+    { "label": "wps", "var": "ps", "typecode": "wff" }
+  ],
+  "statements": [
+    {
+      "label": "wi",
+      "floats": [
+        { "var": "ph", "typecode": "wff" },
+        { "var": "ps", "typecode": "wff" }
+      ],
+      "essentials": [],
+      "conclusion": ["wff", "(", "ph", "->", "ps", ")"]
+    },
+    {
+      "label": "ax-1",
+      "floats": [
+        { "var": "ph", "typecode": "wff" },
+        { "var": "ps", "typecode": "wff" }
+      ],
+      "essentials": [],
+      "conclusion": ["|-", "(", "ph", "->", "(", "ps", "->", "ph", ")", ")"]
+    }
+  ]
+}
