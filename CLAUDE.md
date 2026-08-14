@@ -133,6 +133,21 @@ dependency change, because CI installs with `--frozen-lockfile`; and if the site
 ever links outward, remember that the links check requests external `href`s too,
 so someone else's rot becomes your red check.
 
+**`tsconfig.json`'s `include` is the list of what gets typechecked, and it is not
+the repo.** It reads `["*.ts", "spec", "src"]` --- root files, the spec suite,
+and the logic layer. A new top-level directory is invisible to `tsc --noEmit`
+until it is named here, and the failure is silent in the worst way: `vite build`
+only compiles what an entry HTML actually imports, so code no page imports yet
+gets no compile-time sensor at all. `src` was added for exactly that reason ---
+the logic layer lands before any page reads it. `scripts/` is still outside the
+list; that is a gap, not a decision.
+
+**Nothing in `public/` may be an HTML file.** Vite copies `public/` into `dist/`
+verbatim, *and* `vite.config.ts`'s `htmlEntries()` walks the whole repo for
+`.html` to use as build entries --- so an HTML file in there gets picked up twice
+and lands in `dist/` from both paths. Static data (the palette JSON) is what
+`public/` is for here.
+
 ## Your process is part of the mark
 
 The deployed page is only half of it. How you got there is marked too: your
