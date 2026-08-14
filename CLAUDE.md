@@ -95,24 +95,37 @@ in the course the spec will ask you to show how you tested both. When you do,
 read a green performance result honestly: it's a lab estimate from one run on a
 CI machine, not proof the site is fast for real users.
 
-## The stack is swappable
+## The stack: the template as it ships
 
-Out of the box this is plain HTML/CSS/TypeScript on Vite, and every `.html` file
-in the repo is a page: add pages, link them, and the build picks them up with no
-config. That's a default, not a rule (unless the week's spec says otherwise).
-You can swap in Astro or any other static generator, because nothing in CI names
-a tool --- the whole contract is:
+Plain HTML/CSS/TypeScript on Vite, unchanged from the template. Every `.html`
+file in the repo is a page: add pages, link them, and the build picks them up
+with no config.
 
-- `pnpm build` emits the complete site into `dist/`
-- the `package.json` scripts (`check`, `check:evidence`, `build`) keep working
-- whatever lands in `dist/` still passes the invariants in `spec/`
+**This was a decision, not a default.** The stack is swappable --- nothing in CI
+names a tool, and the whole contract is that `pnpm build` emits the complete
+site into `dist/`, the `package.json` scripts (`check`, `check:evidence`,
+`build`) keep working, and whatever lands in `dist/` still passes the invariants
+in `spec/`. A generator earns its place when there are many pages sharing one
+set of chrome; an explainer is one idea and one mechanic, so there is no chrome
+to keep in sync and nothing for a layout to do. Vite also keeps TypeScript as a
+sensor, which matters more here than in a mostly-static build: the interaction
+is the artefact, so the compiler is checking the part that can actually break.
 
-Two things bite in a swap. The deployed site lives under a path
-(`…github.io/<repo>/`), so configure your generator's base path --- this
-template's Vite config uses relative asset URLs to sidestep that, but most
-generators (Astro included) need `base` set explicitly, and getting it wrong
-looks fine locally while every asset 404s on the live URL. And commit the
-updated `pnpm-lock.yaml`: CI installs with `--frozen-lockfile`.
+**Don't set a base path, and know why.** The deployed site lives under
+`…github.io/comp4020-ass1-amackay/`, and this template's Vite config sidesteps
+that with relative asset URLs. Setting `base` instead breaks CI's links step,
+which runs `linkinator ./dist` --- that serves `dist/` at the *domain root*, so
+every internal URL carrying the base prefix 404s and the check goes red on
+**correct** links. Making that green again means writing a crawler that serves
+`dist/` under the base path, which is real work for no gain here. Keep links
+relative and the shipped links check does its job unmodified. (If a future week
+does need `base`, the answer is to fix the crawler --- never to drop `base`,
+which trades a red check for a broken live site.)
+
+Two more things that bite: commit the updated `pnpm-lock.yaml` with any
+dependency change, because CI installs with `--frozen-lockfile`; and if the site
+ever links outward, remember that the links check requests external `href`s too,
+so someone else's rot becomes your red check.
 
 ## Your process is part of the mark
 
