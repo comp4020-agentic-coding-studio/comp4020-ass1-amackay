@@ -34,7 +34,13 @@ and see `spec/README.md` for how the checks in this repo relate to it.
   you the file, the line, or the contract. Treat a red check as authoritative
   --- the page is wrong until the check is green, not until you decide it should
   be.
-- Commit when the checks pass. Never commit a red state.
+- Commit when the checks pass. Never commit a red state, with one exception:
+  **a spec test written before the thing it describes is meant to be red.** The
+  tests in `spec/assignment-1.test.ts` were committed failing, on purpose ---
+  red-to-green is the record of the work, and a commit that turns one green is
+  the strongest kind of evidence `PROCESS.md` can cite. The rule is about never
+  committing a red *build*, lint, typecheck, or a test that used to pass. If a
+  test goes red because the site regressed, that is the rule, not the exception.
 
 ## The checks (your sensors)
 
