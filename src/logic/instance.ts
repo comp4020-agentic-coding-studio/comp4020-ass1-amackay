@@ -1,7 +1,5 @@
-import { instantiate } from "./expression";
+import { instantiate, same } from "./expression";
 import type { BlockInstance, Expr, Expression, Statement, Variable } from "./types";
-
-const NOT_IMPLEMENTED = "M1: not implemented";
 
 /**
  * A palette chip as a droppable piece: `wph $f wff ph $.` becomes `["wff","ph"]`.
@@ -77,19 +75,39 @@ export function fillFloat(instance: BlockInstance, varName: string, expr: Expr):
   return { ...instance, fills: new Map(instance.fills).set(varName, expr) };
 }
 
+/**
+ * A lock slot takes a piece that matches its essential hypothesis *exactly*,
+ * and only once every float is filled — until then the essential still contains
+ * variables and there is nothing definite to match against.
+ *
+ * One comparison, over the whole token array including the typecode. No
+ * separate typecode check is needed or wanted: the instantiated essential
+ * starts with `|-` and so does any candidate, and splitting this into a check
+ * across two shapes is exactly how an "exact equality" test quietly starts
+ * passing near-misses.
+ *
+ * The already-satisfied guard is M1's addition — DESIGN.md is silent, but
+ * refilling a satisfied lock would discard its provenance without saying so.
+ */
 export function canFillLock(instance: BlockInstance, index: number, expr: Expr): boolean {
-  void instance;
-  void index;
-  void expr;
-  throw new Error(NOT_IMPLEMENTED);
+  const essential = instance.statement.essentials[index];
+  if (essential === undefined || instance.locks[index] !== null) return false;
+  if (!allFloatsFilled(instance)) return false;
+  return same(expr.tokens, instantiate(essential, instance.fills));
 }
 
 /** Satisfy a lock slot, returning a *new* instance. Throws on an illegal fill. */
 export function fillLock(instance: BlockInstance, index: number, expr: Expr): BlockInstance {
-  void instance;
-  void index;
-  void expr;
-  throw new Error(NOT_IMPLEMENTED);
+  if (!canFillLock(instance, index, expr)) {
+    throw new Error(
+      `${instance.statement.label}: ${expr.tokens.join(" ")} does not satisfy hypothesis ${index}`,
+    );
+  }
+  // Only the provenance is kept: the tokens are already equal to the
+  // instantiated essential, so storing them would be a second source of truth.
+  const locks = [...instance.locks];
+  locks[index] = expr.provenance;
+  return { ...instance, locks };
 }
 
 export function isComplete(instance: BlockInstance): boolean {
