@@ -1,11 +1,18 @@
+import { instantiate } from "./expression";
 import type { BlockInstance, Expr, Expression, Statement, Variable } from "./types";
 
 const NOT_IMPLEMENTED = "M1: not implemented";
 
-/** A palette chip as a droppable piece: `wph $f wff ph $.` becomes `["wff","ph"]`. */
+/**
+ * A palette chip as a droppable piece: `wph $f wff ph $.` becomes `["wff","ph"]`.
+ * A chip is a slotless block, so its provenance has the same shape as any
+ * other block's — one shape here, not two.
+ */
 export function variableExpr(v: Variable): Expr {
-  void v;
-  throw new Error(NOT_IMPLEMENTED);
+  return {
+    tokens: [v.typecode, v.var],
+    provenance: { label: v.label, fills: {}, locks: [] },
+  };
 }
 
 /**
@@ -14,9 +21,12 @@ export function variableExpr(v: Variable): Expr {
  * and the UI owns identity anyway.
  */
 export function createInstance(statement: Statement, id: string): BlockInstance {
-  void statement;
-  void id;
-  throw new Error(NOT_IMPLEMENTED);
+  return {
+    statement,
+    fills: new Map(),
+    locks: statement.essentials.map(() => null),
+    id,
+  };
 }
 
 /**
@@ -31,15 +41,22 @@ export function instantiated(instance: BlockInstance): {
   essentials: Expression[];
   conclusion: Expression;
 } {
-  void instance;
-  throw new Error(NOT_IMPLEMENTED);
+  const { statement, fills } = instance;
+  return {
+    essentials: statement.essentials.map((e) => instantiate(e, fills)),
+    conclusion: instantiate(statement.conclusion, fills),
+  };
 }
 
+const allFloatsFilled = (instance: BlockInstance): boolean =>
+  instance.statement.floats.every((f) => instance.fills.has(f.var));
+
+/** A parameter slot takes a piece whose typecode matches. That is the whole check. */
 export function canFillFloat(instance: BlockInstance, varName: string, expr: Expr): boolean {
-  void instance;
-  void varName;
-  void expr;
-  throw new Error(NOT_IMPLEMENTED);
+  const float = instance.statement.floats.find((f) => f.var === varName);
+  return (
+    float !== undefined && !instance.fills.has(varName) && expr.tokens[0] === float.typecode
+  );
 }
 
 /**
@@ -52,10 +69,12 @@ export function canFillFloat(instance: BlockInstance, varName: string, expr: Exp
  * and only offers legal targets), so a failed fill is a bug and should be loud.
  */
 export function fillFloat(instance: BlockInstance, varName: string, expr: Expr): BlockInstance {
-  void instance;
-  void varName;
-  void expr;
-  throw new Error(NOT_IMPLEMENTED);
+  if (!canFillFloat(instance, varName, expr)) {
+    throw new Error(
+      `${instance.statement.label}: cannot fill ${varName} with ${expr.tokens.join(" ")}`,
+    );
+  }
+  return { ...instance, fills: new Map(instance.fills).set(varName, expr) };
 }
 
 export function canFillLock(instance: BlockInstance, index: number, expr: Expr): boolean {
@@ -74,12 +93,26 @@ export function fillLock(instance: BlockInstance, index: number, expr: Expr): Bl
 }
 
 export function isComplete(instance: BlockInstance): boolean {
-  void instance;
-  throw new Error(NOT_IMPLEMENTED);
+  return allFloatsFilled(instance) && instance.locks.every((lock) => lock !== null);
 }
 
-/** The block's conclusion as a droppable piece. Throws unless the block is complete. */
+/**
+ * The block's conclusion as a droppable piece, carrying the proof that produced
+ * it. Throws unless the block is complete — a conclusion under partial fills is
+ * something to look at, not something to use.
+ */
 export function conclusionExpr(instance: BlockInstance): Expr {
-  void instance;
-  throw new Error(NOT_IMPLEMENTED);
+  if (!isComplete(instance)) {
+    throw new Error(`${instance.statement.label}: block is not complete`);
+  }
+  return {
+    tokens: instantiate(instance.statement.conclusion, instance.fills),
+    provenance: {
+      label: instance.statement.label,
+      fills: Object.fromEntries(
+        [...instance.fills].map(([name, expr]) => [name, expr.provenance]),
+      ),
+      locks: [...instance.locks],
+    },
+  };
 }
