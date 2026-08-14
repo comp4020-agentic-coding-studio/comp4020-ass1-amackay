@@ -5,7 +5,7 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { Expression, Statement, Typecode } from "./index";
+import type { Expression, Statement, Typecode, Variable } from "./index";
 
 const SET_MM = resolve("reference/set.mm-propcalc.mm");
 
@@ -15,8 +15,16 @@ export function readPalette(name: string): string {
 }
 
 interface Frame {
-  floats: { label: string; var: string; typecode: Typecode }[];
+  floats: Variable[];
   essentials: { label: string; expr: Expression }[];
+}
+
+/** A Metamath database read far enough to check a palette against it. */
+export interface Database {
+  /** Every `$a` and `$p`, with its mandatory hypotheses worked out. */
+  statements: Map<string, Statement>;
+  /** Every `$f`, by the variable it declares — the palette's chips. */
+  floats: Map<string, Variable>;
 }
 
 /**
@@ -34,9 +42,10 @@ interface Frame {
  * flattening from the file is what stops the test from agreeing with the
  * palette about a mistake.
  */
-export function extractStatements(source: string): Map<string, Statement> {
+export function readDatabase(source: string): Database {
   const tokens = source.split(/\s+/).filter(Boolean);
-  const out = new Map<string, Statement>();
+  const statements = new Map<string, Statement>();
+  const floats = new Map<string, Variable>();
   const frames: Frame[] = [{ floats: [], essentials: [] }];
   let i = 0;
 
@@ -80,20 +89,22 @@ export function extractStatements(source: string): Map<string, Statement> {
 
     if (kind === "$f") {
       const [typecode, name] = take("$.");
-      frame.floats.push({ label, var: name, typecode: typecode as Typecode });
+      const declared: Variable = { label, var: name, typecode: typecode as Typecode };
+      frame.floats.push(declared);
+      floats.set(name, declared);
     } else if (kind === "$e") {
       frame.essentials.push({ label, expr: take("$.") });
     } else if (kind === "$a" || kind === "$p") {
       // A $p's conclusion ends at `$=`; the compressed proof runs from there.
       const conclusion = take(kind === "$p" ? "$=" : "$.");
       if (kind === "$p") take("$.");
-      out.set(label, mandatory(label, conclusion, frames));
+      statements.set(label, mandatory(label, conclusion, frames));
     } else {
       throw new Error(`unexpected ${kind} after label ${label}`);
     }
   }
 
-  return out;
+  return { statements, floats };
 }
 
 /**
@@ -115,10 +126,10 @@ function mandatory(label: string, conclusion: Expression, frames: Frame[]): Stat
   };
 }
 
-let cached: Map<string, Statement> | undefined;
+let cached: Database | undefined;
 
 /** set.mm through propositional calculus, read once per test process. */
-export function setMm(): Map<string, Statement> {
-  cached ??= extractStatements(readFileSync(SET_MM, "utf8"));
+export function setMm(): Database {
+  cached ??= readDatabase(readFileSync(SET_MM, "utf8"));
   return cached;
 }

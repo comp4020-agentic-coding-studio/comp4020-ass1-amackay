@@ -121,7 +121,7 @@ describe("acceptance: ⊢ ( ph -> ph ) from ax-1, ax-2 and ax-mp", () => {
   );
 
   it("reaches the statement set.mm calls id", () => {
-    const id = setMm().get("id");
+    const id = setMm().statements.get("id");
     expect(id, "id is missing from the reference database").toBeDefined();
     expect(step5.tokens).toEqual(id!.conclusion);
     expect(step5.tokens).toEqual(["|-", "(", "ph", "->", "ph", ")"]);

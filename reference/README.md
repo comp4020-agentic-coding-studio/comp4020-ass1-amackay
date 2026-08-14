@@ -1,8 +1,13 @@
 # Reference material
 
 Third-party Metamath files, vendored so the palette JSON can be *checked*
-against its source rather than trusted. Not part of the deployed site, not read
-at runtime, not on the `pnpm check` path.
+against its source rather than trusted. Not part of the deployed site and not
+read at runtime.
+
+`set.mm-propcalc.mm` **is** on the `pnpm check` path, as of
+`src/logic/palette-source.test.ts`: that test reads the statements back out of
+it and compares them to the palette JSON, which is what the closing section of
+this file anticipated. The other three files are not.
 
 ## `set.mm-propcalc.mm` — 614 KB
 
@@ -15,8 +20,14 @@ upstream.
 
 Why this range rather than the whole 50 MB database, or a minimal excerpt:
 
-- **It verifies standalone.** `mmverify.py` checks all 1,789 `$a`/`$p`
-  statements in ~0.13 s.
+- **It verifies standalone.** It holds 1,778 assertions — 35 `$a` and 1,743
+  `$p` — and `mmverify.py` verifies every one of those 1,743 proofs in ~0.13 s.
+  (This paragraph first claimed 1,789, which was wrong. The count is now
+  asserted in `src/logic/palette-source.test.ts`, where the reader that checks
+  the palette also has to agree about how many statements it found — a reader
+  that silently found none would otherwise make every comparison pass by
+  comparing nothing. `python3 -c` over the token stream and `mmverify.py -v 2`
+  both give the same figures independently.)
 - **It is entirely `$d`-free.** The only two `$d` tokens in it sit inside the
   header's explanation of the Metamath grammar; no statement carries a
   distinct-variable condition. That is DESIGN.md's constraint on palette
