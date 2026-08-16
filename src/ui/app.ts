@@ -29,6 +29,30 @@ const entries = (): Template[] => [
   ...palette.templates,
 ];
 
+/** The widest a card may be: the design's cap, or the bench, whichever is less. */
+const DESIGN_CAP = 560;
+const BENCH_GUTTER = 26;
+
+/**
+ * Cap blocks against the **bench**, never the viewport. `78vw` was the obvious
+ * answer and the wrong one: a 520px block "fits" 78vw while overflowing a 380px
+ * bench, because the bench is one flex item inside a padded page and not the
+ * window. Measuring the thing blocks actually sit in is the only cap that holds
+ * at every width.
+ */
+function capBlocks(bench: HTMLElement): () => void {
+  const apply = (): void => {
+    const cap = Math.min(DESIGN_CAP, bench.clientWidth - BENCH_GUTTER);
+    bench.style.setProperty("--block-max-w", `${Math.max(cap, 0)}px`);
+  };
+
+  apply();
+  if (typeof ResizeObserver === "undefined") return () => {};
+  const observer = new ResizeObserver(apply);
+  observer.observe(bench);
+  return () => observer.disconnect();
+}
+
 export function mount(root: ParentNode): void {
   const paletteBlocks = region(root, "data-palette-blocks");
   const benchCards = region(root, "data-bench-cards");
@@ -39,6 +63,8 @@ export function mount(root: ParentNode): void {
         renderCard(createCard(template, { id: `p${i}`, x: 0, y: 0, z: 0 }), variables).element,
     ),
   );
+
+  capBlocks(benchCards);
 
   // Cards sit where they were put, and stack in the order they were put there.
   benchCards.replaceChildren(

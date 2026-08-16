@@ -119,8 +119,13 @@ body {
   margin: 0 auto;
 }
 
+/* min-width: 0 against flexbox's `auto` default, which sizes an item to its
+   min-content and would let a wide block push the region past the viewport —
+   the region would then hand that width back as the block's 100% cap, and
+   nothing would ever wrap. */
 .region {
   position: relative;
+  min-width: 0;
   padding: 14px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius);
@@ -153,6 +158,11 @@ body {
   --slot-size: 12px;
   --token-gap-x: 5px;
 
+  /* Palette blocks wrap against the column, exactly as bench cards wrap against
+     the bench. Without this they keep the 560px design cap, overflow a 326px
+     phone column, and take the whole page into horizontal scroll with them. */
+  --block-max-w: 100%;
+
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -180,10 +190,17 @@ body {
 }
 
 /* A block is a stack of shrink-to-fit rows, so its silhouette is a staircase.
-   Rows touch: any gap between them would break the outline into pieces. */
+   Rows touch: any gap between them would break the outline into pieces.
+
+   minmax(0, 1fr) rather than the default `auto` track: an auto track sizes to
+   its max-content, so the rows would keep their unwrapped width and spill out
+   of the capped block instead of wrapping inside it. `justify-items: start`
+   still leaves each row shrink-to-fit within the track, which is what keeps the
+   silhouette a staircase. */
 .block {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: start;
   max-width: var(--block-max-w);
 }
