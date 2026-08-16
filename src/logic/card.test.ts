@@ -6,7 +6,9 @@ import {
   freeze,
   instantiatedConclusion,
   isComplete,
+  seatLock,
   seatSocket,
+  thaw,
   variableChip,
   type Chip,
   type Placement,
@@ -167,5 +169,82 @@ describe("isComplete and freeze", () => {
     // compare unequal.
     const full = seatSocket(seatSocket(createCard(WI, { id: "c1", x: 9, y: 9, z: 9 }), "ph", ph), "ps", ps);
     expect(Object.keys(freeze(full))).toEqual(["template", "fills", "keys"]);
+  });
+});
+
+describe("thaw", () => {
+  // ax-mp: the only shape where a chip carries keys as well as fills, so it is
+  // the one worth round-tripping.
+  const AX_MP: Template = {
+    label: "ax-mp",
+    sockets: [
+      { var: "ph", typecode: "wff" },
+      { var: "ps", typecode: "wff" },
+    ],
+    locks: [
+      ["|-", "ph"],
+      ["|-", "(", "ph", "->", "ps", ")"],
+    ],
+    conclusion: ["|-", "ps"],
+  };
+
+  const key = (conclusion: Chip["template"]["conclusion"], label: string): Chip => ({
+    template: { label, sockets: [], locks: [], conclusion },
+    fills: {},
+    keys: [],
+  });
+
+  const mp = freeze(
+    seatLock(
+      seatLock(
+        seatSocket(seatSocket(createCard(AX_MP, at("a")), "ph", ph), "ps", ps),
+        0,
+        key(["|-", "ph"], "step-1"),
+      ),
+      1,
+      key(["|-", "(", "ph", "->", "ps", ")"], "step-2"),
+    ),
+  );
+
+  it("comes back complete and collapsed", () => {
+    const card = thaw(mp, at("c9"));
+    expect(isComplete(card)).toBe(true);
+    expect(card.collapsed).toBe(true);
+  });
+
+  it("round-trips to identity on the derivation", () => {
+    // Construction and deconstruction are inverse — this is the property the
+    // whole eject/pop mechanic stands on.
+    expect(freeze(thaw(mp, at("c9")))).toEqual(mp);
+  });
+
+  it("round-trips to identity wherever the card is placed", () => {
+    // Placement reaches the card and stops there; nothing about where a chip
+    // sat can reach the chip.
+    expect(freeze(thaw(mp, { id: "elsewhere", x: 401, y: 77, z: 12 }))).toEqual(
+      freeze(thaw(mp, at("c9"))),
+    );
+  });
+
+  it("takes its position from the caller, not from the chip", () => {
+    const card = thaw(mp, { id: "c9", x: 40, y: 12, z: 3 });
+    expect({ id: card.id, x: card.x, y: card.y, z: card.z }).toEqual({
+      id: "c9", x: 40, y: 12, z: 3,
+    });
+  });
+
+  it("hands back a card that can be taken apart", () => {
+    // A thawed card is mutable in the ordinary way: its slots are just filled.
+    const card = thaw(mp, at("c9"));
+    expect(Object.keys(card.fills).sort()).toEqual(["ph", "ps"]);
+    expect(card.keys.map((k) => k?.template.label)).toEqual(["step-1", "step-2"]);
+  });
+
+  it("does not alias the chip it thawed", () => {
+    // Shallow copies of fills and keys: seating into the card must not reach
+    // back into the immutable chip.
+    const card = thaw(mp, at("c9"));
+    expect(card.fills).not.toBe(mp.fills);
+    expect(card.keys).not.toBe(mp.keys);
   });
 });

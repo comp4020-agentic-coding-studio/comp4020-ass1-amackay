@@ -33,6 +33,7 @@ export {
   isComplete,
   seatLock,
   seatSocket,
+  thaw,
 } from "./card";
 
 export { assertPalette, parsePalette, template, variable } from "./palette";

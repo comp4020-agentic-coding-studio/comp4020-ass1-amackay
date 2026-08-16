@@ -131,3 +131,26 @@ export function freeze(card: Card): Chip {
   return { template: card.template, fills, keys: card.keys.map((key) => key!) };
 }
 
+/**
+ * The inverse: a chip back to a card, complete and collapsed. Used when a chip
+ * is ejected onto the bench, or popped out of a lock — both leave something the
+ * visitor can pick up and take apart again.
+ *
+ * Construction and deconstruction are inverse, so the round trip has to be
+ * identity on the derivation: `freeze(thaw(chip, anywhere))` is `chip`. Nothing
+ * about where the card sat can reach the chip, which is why `Placement` is an
+ * argument here and not something a chip remembers.
+ */
+export function thaw(chip: Chip, placement: Placement): Card {
+  return {
+    id: placement.id,
+    template: chip.template,
+    fills: { ...chip.fills },
+    keys: [...chip.keys],
+    collapsed: true,
+    x: placement.x,
+    y: placement.y,
+    z: placement.z,
+  };
+}
+
