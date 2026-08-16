@@ -9,6 +9,7 @@ import {
 } from "../logic";
 import { createOutline, observeOutline } from "./outline";
 import { spans, statementCells, typecodeCell } from "./tokens";
+import { slotPath } from "./workspace";
 
 /** A rendered block and the observers it owns. */
 export interface Rendered {
@@ -51,13 +52,17 @@ function socketRow(card: Card, socket: Socket, variables: ReadonlySet<string>): 
   element.dataset["var"] = socket.var;
   element.append(typecodeCell(socket.typecode));
 
+  const slot = slotPath({ cardId: card.id, kind: "socket", var: socket.var });
   const fill = card.fills[socket.var];
   if (fill) {
-    element.append(chipRow(fill, variables, "fill"));
+    const seated = chipRow(fill, variables, "fill");
+    seated.dataset["seated"] = slot;
+    element.append(seated);
   } else {
     const notch = document.createElement("span");
     notch.className = "notch";
     notch.textContent = socket.var;
+    notch.dataset["slot"] = slot;
     element.append(notch);
   }
   return element;
@@ -73,17 +78,24 @@ function socketRow(card: Card, socket: Socket, variables: ReadonlySet<string>): 
  */
 function lockRow(card: Card, index: number, variables: ReadonlySet<string>): Rendered {
   const element = row("lock");
+  const slot = slotPath({ cardId: card.id, kind: "lock", index });
   const key = card.keys[index];
 
   if (key) {
-    element.append(chipRow(key, variables, "key"));
+    const seated = chipRow(key, variables, "key");
+    seated.dataset["seated"] = slot;
+    element.append(seated);
     return { element, dispose: () => {} };
   }
 
-  element.classList.add(socketsFilled(card) ? "row--live" : "row--inert");
+  // Only a live lock is a drop target: while a socket is unfilled the picture
+  // still holds variables, so there is nothing definite to match against.
+  const live = socketsFilled(card);
+  element.classList.add(live ? "row--live" : "row--inert");
 
   const picture = document.createElement("span");
   picture.className = "picture";
+  if (live) picture.dataset["slot"] = slot;
   const { svg, path } = createOutline("picture");
   const inner = document.createElement("span");
   inner.className = "picture-row";
@@ -113,6 +125,10 @@ export function renderCard(card: Card, variables: ReadonlySet<string>): Rendered
   const element = document.createElement("div");
   element.className = "block";
   element.dataset["card"] = card.id;
+  // Reachable by tab, because the keyboard has to be able to lift what the
+  // pointer can. `touch-action: none` (in CSS) keeps a touch drag from
+  // scrolling the page out from under itself.
+  element.tabIndex = 0;
   if (card.collapsed) element.classList.add("block--collapsed");
 
   const { svg, path } = createOutline();

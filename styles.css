@@ -203,6 +203,16 @@ body {
   grid-template-columns: minmax(0, 1fr);
   justify-items: start;
   max-width: var(--block-max-w);
+  cursor: grab;
+
+  /* The pointer routinely leaves a block mid-drag, and a touch drag must not
+     scroll the page out from under itself. */
+  touch-action: none;
+}
+
+.block:focus-visible {
+  outline: var(--border-w) solid var(--hot-line);
+  outline-offset: 3px;
 }
 
 /* On the bench a card sits where it was put, and overlaps whatever is there. */
