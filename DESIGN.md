@@ -191,8 +191,14 @@ has an external referent rather than being invented here.
   the wrap points are exactly where they were — just no longer visible as gaps.
   The only horizontal padding left is the variable chip's, which is what makes it
   read as a chip. The default tray width is measured from this: the widest
-  template conclusion (ax-3) plus the column's padding, so nothing in the palette
-  wraps at either viewport until the visitor drags it narrower.
+  template conclusion (ax-2, at 337px) plus the column's padding, so nothing in
+  the palette wraps at either viewport until the visitor drags it narrower.
+- **Bench blocks come down a size below 460px.** No template should arrive on the
+  bench already wrapped, and ax-2 — the longest, at 400px unwrapped — stops
+  fitting when the canvas is under about 426px. The threshold is that number with
+  room left for the marker's font fallbacks to measure differently. A *filled*
+  conclusion still wraps whenever it is long enough; that is the design, and the
+  rule is only about what a template looks like before anyone has touched it.
 - **The tray's footprint and the placement area are two different things.** Cards
   are clamped to the canvas *minus* the tray, so nothing can ever land where the
   tray would hide it. That is `.bench-cards` being inset in CSS and nothing more:

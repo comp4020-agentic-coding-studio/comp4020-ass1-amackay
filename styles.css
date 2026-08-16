@@ -82,6 +82,7 @@
   --sans: "IBM Plex Sans", system-ui, sans-serif;
   --token-size: 17px;
   --token-weight: 600;
+  --var-pad-x: 4px;
   --tc-size: 16px;
   --tc-weight: 700;
   --slot-size: 16px;
@@ -541,7 +542,7 @@ body {
 }
 
 .token--var {
-  padding: 1px 4px 2px;
+  padding: 1px var(--var-pad-x) 2px;
   background: var(--var-fill, var(--prov-bg));
   color: var(--var-ink, var(--ink));
 }
@@ -604,5 +605,25 @@ body {
     border-left: 0;
     border-top: 1px solid var(--label);
     transform: translateX(50%);
+  }
+}
+
+/* Bench blocks come down a size where the canvas is too narrow to hold the
+   longest template at the full one. The threshold is measured, not chosen:
+   ax-2's conclusion is 400px unwrapped at 17px, and the block cap is the
+   canvas less a 26px gutter, so it stops fitting at about 426px of canvas —
+   which in this layout is the viewport. 460 leaves room for the marker's font
+   fallbacks to land differently from these.
+
+   The palette is untouched: it declares its own scale on `.palette-blocks`,
+   which beats an inherited one, and it already fits. */
+@media (width < 460px) {
+  :root {
+    --tc-w: 36px;
+    --pad: 7px;
+    --token-size: 15px;
+    --tc-size: 14px;
+    --slot-size: 14px;
+    --var-pad-x: 3px;
   }
 }
