@@ -1,19 +1,22 @@
-# COMP4020 prototype
+# Proof blocks — agent harness
 
-This is your starter repo for a COMP4020 prototype: a static site written in
-HTML/CSS/TypeScript that builds to plain HTML/CSS/JS and deploys to GitHub
-Pages. The **deployed site is what gets marked** --- not this repo, and not "it
-works on my machine". It's marked live in Chrome against the deployed URL at two
-viewports --- 1920×1080 (desktop) and 390×844 (phone) --- and both count in
-full, so make that artefact good at both and use the checks below to know
-whether it is.
+A COMP4020 prototype: a static site in HTML/CSS/TypeScript that builds to plain
+HTML/CSS/JS and deploys to GitHub Pages. The **deployed site is what gets
+marked** --- not this repo, and not "it works on my machine". It's marked live in
+Chrome against the deployed URL at two viewports --- 1920×1080 (desktop) and
+390×844 (phone) --- and both count in full, so make that artefact good at both
+and use the checks below to know whether it is.
 
-What you're building this week — the spec — is published on the course website,
-and this repo's name tells you which deliverable it is. Run the course plugin's
-**start** skill at the start of each week: it pulls the right spec from the
-course API, carries your harness forward from last week, and helps you turn the
-spec's checkable lines into tests of your own. Read the spec before you build,
-and see `spec/README.md` for how the checks in this repo relate to it.
+**Read `DESIGN.md` before changing anything.** It is the implementation
+authority: what the prototype is, what is settled, what is deliberately still
+open, and what was tried and rejected. This file wins where the two disagree, but
+they should not disagree --- `DESIGN.md` is about the artefact, this one is about
+working on it. `spec/README.md` says how the checks relate to the published spec.
+
+The one architectural rule worth stating twice: **`src/logic/` and
+`src/ui/workspace.ts` contain no DOM**, and each has a test that greps its own
+source to keep it that way. Logic bugs, state bugs and pointer bugs must never be
+confusable for each other.
 
 ## How to work in here
 
@@ -155,6 +158,46 @@ Related, and still true whatever `public/` holds: **nothing in it may be an HTML
 file.** `vite.config.ts`'s `htmlEntries()` walks the whole repo for `.html` to
 use as build entries, so an HTML file in `public/` gets picked up twice and lands
 in `dist/` from both paths.
+
+## Layout facts that cost real time here
+
+All three were found by opening the page, not by reading the code, and all three
+look like styling nits until you notice what they break.
+
+**A flex item's `min-width` defaults to `auto`, not `0`.** A wide block inside
+the palette stretched the panel past the viewport, the panel then handed that
+width back as the block's `max-width: 100%`, and nothing ever wrapped — a loop
+that ends in horizontal page scroll. `min-width: 0` on the flex item breaks it.
+
+**A grid track defaults to sizing at its items' max-content.** Capping the block
+with `max-width` does not cap the track inside it, so rows kept their unwrapped
+width and spilled out of a block that was itself the right size.
+`grid-template-columns: minmax(0, 1fr)` fixes it, and `justify-items: start`
+still leaves each row shrink-to-fit — which is what makes the silhouette a
+staircase.
+
+**An absolutely positioned box only gets `container − left` to lay out in.** A
+bench card near the right edge shrinks instead of keeping its shape, so any code
+that *measures* the card to work out where to move it is measuring a box the
+overflow already crushed. `width: max-content` makes the width independent of
+position; the cap comes from `max-width`.
+
+**Measure the thing, not the window.** Blocks are capped against the bench's
+measured width, never `vw`: a 520px block "fits" 78vw while overflowing a 380px
+bench, because the bench is one flex item inside a padded page.
+
+**stylelint-config-standard rejects BEM modifiers and orders by specificity.**
+`selector-class-pattern` is overridden in `.stylelintrc.json` to allow `--`;
+`no-descending-specificity` means a compound selector has to come *after* the
+plain one it builds on, so new rules often belong further down the file than
+where they were written.
+
+## When a check fails, believe it — including your own scripts
+
+`scripts/derive-id.sh` went red twice and the app was correct both times: once
+because seating *consumes* the card, so anything used twice has to be built
+twice, and once because its text matchers were ASCII after the render moved to
+set.mm's glyphs. Read what the failure says before assuming the code moved.
 
 ## Your process is part of the mark
 

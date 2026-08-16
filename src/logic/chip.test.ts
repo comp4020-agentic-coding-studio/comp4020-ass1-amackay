@@ -90,7 +90,7 @@ describe("conclusionTokens", () => {
   });
 
   it("recurses to any depth", () => {
-    // wi inside wi inside ax-1 — the chain HANDOFF.md names as the wrap stress.
+    // wi inside wi inside ax-1 — the chain that stresses the renderer's wrap.
     const inner = chip(WI, { ph, ps }); //          ( ph -> ps )
     const outer = chip(WI, { ph: inner, ps: ph }); // ( ( ph -> ps ) -> ph )
     expect(conclusionTokens(chip(AX1, { ph: outer, ps: ph }))).toEqual([

@@ -4,10 +4,14 @@ Third-party Metamath files, vendored so the palette JSON can be *checked*
 against its source rather than trusted. Not part of the deployed site and not
 read at runtime.
 
-`set.mm-propcalc.mm` **is** on the `pnpm check` path, as of
-`src/logic/palette-source.test.ts`: that test reads the statements back out of
-it and compares them to the palette JSON, which is what the closing section of
-this file anticipated. The other three files are not.
+`set.mm-propcalc.mm` **is** on the `pnpm check` path, via
+`src/logic/palette-source.test.ts`: that test reads the statements back out of it
+and compares them to the palette JSON. The other three files are not.
+
+The same database's typesetting block is also where the site's glyphs come from,
+extracted once by `scripts/extract-notation.py` into `src/notation/`. That
+extraction ran against a full copy of set.mm rather than this excerpt, because
+the `$t` block sits at the end of the file, past the cut.
 
 ## `set.mm-propcalc.mm` — 614 KB
 
@@ -68,7 +72,7 @@ hand-authoring the JSON doesn't mean grepping 614 KB.
 679  ax-1 $a |- ( ph -> ( ps -> ph ) ) $.
 688  ax-2 $a |- ( ( ph -> ( ps -> ch ) ) -> ( ( ph -> ps ) -> ( ph -> ch ) ) ) $.
 701  ax-3 $a |- ( ( -. ph -> -. ps ) -> ( ps -> ph ) ) $.
-870  id  $p |- ( ph -> ph ) $.     — M1's acceptance target
+870  id  $p |- ( ph -> ph ) $.     — the logic layer's acceptance target
 ```
 
 Note `ax-mp`'s shape: two `$e` essentials inside a `${ … $}` block, with the
@@ -95,12 +99,12 @@ as arithmetic rather than logic.
 One axiom (`⊢ M I`), four rules, three constants, and a target (`⊢ M U I I U`)
 that needs no logical training to want.
 
-One implementation note MIU forces into the open early: `we $a wff $.` declares
+One implementation note MIU forced into the open early: `we $a wff $.` declares
 the **empty wff**. Under the one-representation model that is `["wff"]` — an
-`Expr` whose tokens are just its typecode, and whose substitution body
-(`slice(1)`) is empty. Legal, meaningful, and exactly the case a renderer
-assuming at least one visible token gets wrong. Worth a test whichever palette
-ships.
+expression whose tokens are just its typecode, and whose substitution body
+(`slice(1)`) is empty. Legal, meaningful, and exactly the case an implementation
+assuming at least one visible token gets wrong. It has a test in
+`src/logic/chip.test.ts` whichever palette ships.
 
 ## `mmverify.py` — 29 KB
 
@@ -117,5 +121,5 @@ lines. Kept for three jobs:
    free of DOM imports partly for this.
 
 Python, while CI is Node, so it is **not** wired into `pnpm check`. Anything it
-proves has to become a vitest assertion to be a standing sensor — the
-palette-tokens-against-source test in M1 is the first of those.
+proves has to become a vitest assertion to be a standing sensor;
+`src/logic/palette-source.test.ts` is where that happens.

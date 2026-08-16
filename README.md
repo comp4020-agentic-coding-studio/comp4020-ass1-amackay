@@ -1,64 +1,61 @@
-# COMP4020 static prototype template
+# Proof blocks
 
-A starter template for static-site prototypes in **COMP4020 / COMP8020 Agentic
-Coding Studio**. The course provisions a repo from this template for each
-deliverable --- you don't create it yourself. The `start` course skill clones it
-for you; from there, build your prototype and deploy it to GitHub Pages.
+A browser prototype where you build Metamath derivations by dragging blocks
+together. No text entry, no syntax errors, forward reasoning only.
 
-## CI and Pages only turn on when you ship
+In [Metamath](https://us.metamath.org/), applying a theorem means supplying an
+expression for each floating hypothesis — that *is* the substitution, there is no
+unification — and then checking that each instantiated essential hypothesis
+**exactly** matches something already derived. This renders that as a
+[Scratch](https://scratch.mit.edu/)-style block interface: fill the sockets,
+satisfy the locks, get the conclusion. Illegal moves are impossible, so there are
+no error messages to decode.
 
-Your repo starts private, and both CI jobs (`check` and `deploy`) are gated on
-it being public. While private, a push to `main` runs nothing in CI ---
-`pnpm check` (below) is your feedback loop until then. When you're ready, the
-course's `/ship` skill flips the repo public, turns on GitHub Pages, and
-dispatches the deploy for you; there's nothing to configure in the Pages
-settings yourself. From that point, every push to `main` builds and deploys, and
-the deploy step prints your live URL and checks it returns 200.
+Built for ANU COMP4020 (Agentic Coding Studio)
+[Assignment 1](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/assessments/assignment-1/).
 
-## What gets marked
-
-The deployed site is the deliverable, assessed live in Chrome at two fixed
-viewports --- see the course website's
-[assessment page](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#marking-environment)
-for the details.
-
-## Quick start
+## Running it
 
 ```sh
-mise install       # supported path: install the template's Node and pnpm
+mise install    # the Node and pnpm versions this repo is tested against
 pnpm install
 pnpm dev        # local dev server
-pnpm check      # most of what CI runs (links, secrets, evidence and deploy are CI-only)
-pnpm build      # produce dist/ (what gets deployed)
-pnpm dlx linkinator ./dist --silent   # reproduce CI's links check before you push
+pnpm check      # typecheck, build, lint, and the test suite
+pnpm build      # produce dist/, which is what deploys
 ```
 
-`mise` is the course's recommended runtime manager. If you use another manager
-or the official installers, that is fine: provide the Node and pnpm versions in
-`mise.toml`, then run the same commands. Tutor support reproduces runtime
-problems with mise.
+Drag a `wi` block onto the bench, drop `𝜑` chips into both of its sockets, and it
+collapses into `wff ( 𝜑 → 𝜑 )` — a chip you can now drop into something else.
+The whole thing is keyboard-operable too: Enter on a palette block places a copy,
+Enter on a chip lifts it, Tab cycles the slots it may legally fill, Enter seats
+it.
 
-## What's here
+`bash scripts/derive-id.sh` drives the browser through a real derivation, up to
+the moment ax-mp's lock accepts an exact match.
 
-- `index.html`, `styles.css`, `main.ts` --- a minimal starting site. Replace it.
-- `mise.toml` --- the tested Node and pnpm versions for this template.
-- `spec/` --- what the checks are for (`README.md`), the shipped invariants
-  (`invariants.test.ts`), and a replaceable starter test (`starter.test.ts`);
-  your own spec tests live alongside them.
-- `CLAUDE.md` --- orients your coding agent: what the checks mean and how to
-  work here. Yours to grow.
-- `PROCESS.md` --- a template for your process overview, showing the
-  cited-moment format. Replace it with your own; `pnpm check:evidence` verifies
-  your citations resolve.
-- `.github/workflows/checks.yml` --- the CI sensors that run on every push once
-  your repo is public, and the GitHub Pages deploy.
-- `.githooks/pre-commit` --- blocks any commit that contains something shaped
-  like an API key, so your COMP4020 key can't end up in a public repo. Installed
-  automatically by `pnpm install`.
+## How it is put together
 
-This template is SSG-agnostic: it's plain HTML/CSS/TypeScript on Vite, so you
-can add Astro, Eleventy, or any static generator later without changing how it
-deploys. TypeScript is the course default over plain JavaScript: the types are
-extra backpressure, and your agent feels it before you do.
+| | |
+|---|---|
+| `src/logic/` | the model: templates, chips, cards, substitution, the lock check. Pure TypeScript, zero DOM — a test enforces it |
+| `src/ui/workspace.ts` | the interaction as a state machine. Also zero DOM, for the same reason |
+| `src/ui/` | rendering, and the pointer and keyboard adapters over that machine |
+| `src/palettes/` | the block sets, hand-authored, checked byte-for-byte against set.mm |
+| `src/notation/` | token → glyph, extracted from set.mm's own typesetting block |
+| `reference/` | vendored Metamath files, so the palette can be checked against its source rather than trusted |
+| `spec/` | what the deployed page must do |
 
-See the course site for how the checks map to each week of the course.
+`DESIGN.md` is the implementation authority — what is settled, what is
+deliberately open, and what was tried and rejected. `CLAUDE.md` is the harness
+the coding agent works against. `PROCESS.md` is the reading guide to how the work
+came together.
+
+## Where the Metamath comes from
+
+`reference/set.mm-propcalc.mm` is the first 14,541 lines of
+[set.mm](https://github.com/metamath/set.mm) (CC0), byte-verbatim: everything
+through propositional calculus, `$d`-free, and verifiable standalone by the
+`mmverify.py` beside it. The palettes are hand-authored JSON, and a test reads
+the statements back out of that file and compares them, so "matches set.mm
+exactly" is a sensor rather than a claim. The glyphs come from the same
+database's `althtmldef` lines. See `reference/README.md`.

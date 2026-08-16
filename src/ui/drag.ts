@@ -62,8 +62,8 @@ export function grabFrom(target: Element): Grab | null {
 }
 
 /**
- * Resolve a release, in the order HANDOFF fixes with DESIGN's delete branch
- * inserted: a legal slot, then the delete target, then the bench, then nothing.
+ * Resolve a release, in the order DESIGN.md fixes: a legal slot, then the delete
+ * target, then the bench, then nothing.
  *
  * An *illegal* slot deliberately falls through to the bench branch rather than
  * bouncing back — the piece lands on the canvas where it was dropped.

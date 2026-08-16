@@ -1,18 +1,48 @@
-# DESIGN.md — Proof blocks (working title)
+# DESIGN.md — Proof blocks
 
-Implementation authority. Concept and rationale live in IDEA.md; the design
-study's visual/layout detail lives in HANDOFF.md. Where this file and
-`CLAUDE.md` disagree, `CLAUDE.md` wins. Where this file and HANDOFF.md
-disagree, **this file wins** — see "Superseded from HANDOFF.md" below.
-⟨OPEN⟩ marks decisions not yet made — stub them, don't guess.
+Implementation authority for this prototype: what it is, what is settled, and
+what is deliberately still open. Where this file and `CLAUDE.md` disagree,
+`CLAUDE.md` wins. ⟨OPEN⟩ marks decisions not yet made — stub them, don't guess.
 
-## What changed in this revision (read first)
+## The idea
 
-The core model is now **recursive** (a tree of complete derivations), replacing
-the flat `fills: Map<string, Expr>` model that M1 implemented. The interaction
-semantics are settled and richer: collapse/uncollapse, eject, pop, a delete
-target, and a keyboard adapter. Vocabulary is also new (below); rename
-consistently, including in the M1 code.
+Metamath's verification algorithm, made directly manipulable.
+
+In [Metamath](https://us.metamath.org/), applying a theorem means two things:
+supply an expression for each floating hypothesis — this *is* the substitution,
+there is no unification — and then check that each instantiated essential
+hypothesis **exactly** matches an already-derived statement. This prototype
+renders that as a [Scratch](https://scratch.mit.edu/)-style block interface:
+fill the sockets, satisfy the locks, get the conclusion.
+
+The visual interface exists to make every interaction valid by default, so
+illegal moves are impossible and there are no error messages to decode, and to
+make substitution visible as it happens.
+
+Three things follow, and they are the design:
+
+- **Everything in the palette is one kind of object.** A wff constructor is a
+  theorem block too: `wff ( ph -> ps )` is a template with two wff-typed sockets
+  and no locks, and `wff ph` is slotless. Building a wff by hand and applying an
+  axiom are the same mechanic.
+- **Typecodes are enforced by slot shape, not by explanation.** A wff-shaped
+  notch only accepts wff-shaped pieces. No semantic understanding of typecodes
+  is needed to play.
+- **Exact-match locks are literal, not metaphorical.** `a.join(" ") === b.join(" ")`
+  is Metamath's actual check, and the whole prototype is a dramatisation of it.
+
+Nearest relative in interaction style: [Actema](https://www.actema.xyz/), though
+the execution differs substantially. Ancestor of the mechanic: Metamath
+Solitaire.
+
+**Sandbox, not puzzle.** There is no target statement. The implicit goal is
+seeing what you can reach from the given primitives. Forward reasoning and
+manual assembly are the design's central untested hypothesis — the prototype
+exists to find out whether assembling a derivation by hand is instructive or
+merely tedious.
+
+Audience for this iteration: colleagues who know interactive theorem provers but
+not Metamath.
 
 ## Terminology (use everywhere: code, tests, commits)
 
@@ -20,204 +50,167 @@ consistently, including in the M1 code.
   hypotheses). Variable chips are slotless templates.
 - **socket** — a floating-hypothesis slot. Accepts by typecode match.
 - **lock** — an essential-hypothesis slot. Accepts by exact token equality.
-- **chip** — a complete derivation, collapsed to its conclusion. The only
-  thing that can occupy a socket or lock. Immutable.
+- **chip** — a complete derivation, collapsed to its conclusion. The only thing
+  that can occupy a socket or lock. Immutable.
 - **key** — a chip seated in a lock (no separate type; positional term).
 - **card** — a mutable block instance on the bench.
-- **seated / loose** — in a slot vs free on the canvas. Visually distinct
-  (background tint).
+- **seated / loose** — in a slot vs free on the canvas. Visually distinct.
 - **eject** — pull a chip out of a socket.
 - **pop** — a key unseating because an eject changed its lock's required
   statement. It stays where it is, restyled as loose.
 - **slot** — generic: socket or lock.
 
-## Ground rules (unchanged)
+## Ground rules
 
 - **Stack is the template as it ships**: Vite + TypeScript + plain CSS, no
   framework, no Tailwind. Static, client-side, no persistence.
 - **Marking viewports are exactly 390×844 and 1920×1080.** Keyboard-operable,
   resize-robust.
-- **The logic layer is pure TypeScript with zero DOM imports.** UI is a thin
-  shell over it.
-- **The core interaction is marked in the DOM** — `data-core-interaction` on
-  the control the visitor operates, `data-core-output` on the region that
-  changes; `spec/assignment-1.test.ts` requires tab-reachability.
-- No .mm parsing. Palette content is hand-authored JSON, `$d`-free, tested
-  byte-for-byte against `reference/set.mm-propcalc.mm` (verified by
-  `reference/mmverify.py`).
+- **The logic layer is pure TypeScript with zero DOM imports** — enforced by
+  `src/logic/purity.test.ts`. The interaction's state machine
+  (`src/ui/workspace.ts`) holds the same line, enforced by its own test: a
+  pointer bug and a state bug must never be confusable.
+- **The core interaction is marked in the DOM** — `data-core-interaction` on the
+  control the visitor operates, `data-core-output` on the region that changes;
+  `spec/assignment-1.test.ts` requires tab-reachability and reads the *built*
+  page, so the attribute has to be in `index.html` and not only added by script.
+- No .mm parsing in the shipped site. Palette content is hand-authored JSON,
+  `$d`-free, tested byte-for-byte against `reference/set.mm-propcalc.mm` (itself
+  verified by `reference/mmverify.py`).
 
 ## Core model
 
-**Invariant: anything inside a slot is complete.** Slots hold chips —
-finished, collapsed derivations — never partial blocks. Construction and
-deconstruction are inverse: seat/eject in opposite order. The proof tree is
-the chip structure itself; you see it only by manually deconstructing.
+**Invariant: anything inside a slot is complete.** Slots hold chips — finished,
+collapsed derivations — never partial blocks. Construction and deconstruction
+are inverse: seat and eject in opposite order. The proof tree is the chip
+structure itself; you see it only by manually taking one apart.
 
-```ts
-type Token = string;                    // "(", "ph", "->", ...
-type Typecode = "wff" | "setvar" | "class" | "|-";
-type Expression = Token[];              // tokens[0] is always the typecode
+The types are in `src/logic/types.ts` and the operations in
+`src/logic/index.ts`. What the code cannot say for itself:
 
-interface Template {                    // palette JSON entry
-  label: string;                        // e.g. "ax-1"
-  sockets: { var: string; typecode: Typecode }[];  // MM floating hyps, $f order
-  locks: Expression[];                  // MM essential hyps
-  conclusion: Expression;
-}
+- **A chip *is* its own provenance.** There is no parallel proof record to keep
+  in step with the tokens, because the tokens are recomputed from the structure
+  by `conclusionTokens`. Recompute, never cache.
+- **Substitution is simultaneous**, because recursion only ever runs through
+  complete chips. There is no splice ordering to get wrong, and no way to
+  half-substitute. On ax-1, `ph := ps` with `ps := ph` gives
+  `( ps -> ( ph -> ps ) )`; splicing one variable at a time would give
+  `( ph -> ( ph -> ph ) )`.
+- **A fill contributes `tokens.slice(1)`** — everything after its typecode.
+  Splicing a wff in whole would strand its `wff` token mid-statement, and the
+  slice is also why the empty wff (`["wff"]`, which MIU declares as `we`)
+  substitutes to nothing at all.
+- **Locks gate on all-sockets-filled**, because until then the lock still
+  contains variables and there is nothing definite to match against — not "no
+  match", but "not yet a question".
+- **Eject pops a key when the raw lock expression *mentions* the ejected
+  variable**, literally, even when the rendered picture happens to be unchanged.
+  A key stands for "this derivation satisfies that hypothesis *under these
+  fills*", so when a fill it depended on goes, keeping the key would keep it on
+  a coincidence. It also makes the gesture depend only on the template: the same
+  eject on two structurally identical cards pops the same locks.
+- **The pure layer has no notion of collapse, position, or flash.** `collapsed`
+  and `x/y/z` live on `Card` because a card is what the bench draws, but nothing
+  in `src/logic` reads them.
 
-interface Chip {                        // complete derivation; immutable
-  template: Template;
-  fills: Record<string, Chip>;          // one per socket
-  keys: Chip[];                         // one per lock
-}
-// Chip IS the provenance — there is no separate Provenance type.
+The layer's acceptance test is a scripted derivation of `⊢ ( ph -> ph )` from
+ax-1, ax-2 and ax-mp through the public API — set.mm's own idALT route, so it
+has an external referent rather than being invented here.
 
-interface Card {                        // the only mutable thing
-  id: string;
-  template: Template;
-  fills: Partial<Record<string, Chip>>;
-  keys: (Chip | null)[];
-  collapsed: boolean;
-  x: number; y: number; z: number;      // bench position, stacking
-}
-```
+## Interaction
 
-### Operations (logic layer)
-
-- `conclusionTokens(chip): Expression` — one pass over
-  `template.conclusion`: a socket variable becomes
-  `conclusionTokens(fills[var]).slice(1)` (drop the typecode token);
-  everything else copies through. Recursion is only ever through complete
-  chips, so simultaneity is structural — there is no splice ordering to get
-  wrong. Recompute, don't cache.
-- `instantiatedLocks(card): Expression[]` — each lock under current fills;
-  unfilled socket variables pass through as variable tokens (these render as
-  the lock "pictures").
-- `canSeatSocket(card, var, chip)` — socket unfilled ∧
-  `conclusionTokens(chip)[0]` equals the socket's typecode.
-- `canSeatLock(card, i, chip)` — all sockets filled ∧ lock `i` unfilled ∧
-  `a.join(" ") === b.join(" ")` between `conclusionTokens(chip)` and
-  instantiated lock `i`. Nothing cleverer; the literalness is the point.
-- `isComplete(card)` — all sockets and locks filled.
-- `freeze(card): Chip` / `thaw(chip): Card` — freeze on completion; thaw
-  produces a complete, collapsed card (used when a chip is ejected onto the
-  bench or popped). Round-trip must be identity on the derivation.
-- `eject(card, var): { card: Card; chip: Chip; popped: { lockIndex: number;
-  chip: Chip }[] }` — clears the fill and unseats every key whose lock
-  mentions `var` (its picture changed). Keys in locks not mentioning `var`
-  stay seated: the all-sockets-filled gate applies to *seating*, not
-  retention.
-
-The pure layer has no notion of collapse, position, or flash — those are UI
-state (`collapsed`, `x/y/z` live on Card but only the UI reads them).
-
-## Interaction semantics (settled)
-
-- **Palette → bench copies; bench → anywhere moves.** Dropping a bench card
-  into a slot consumes the card (it becomes the seated chip). Palette
-  originals are permanent.
+- **Palette → bench copies; bench → anywhere moves.** Dropping a bench card into
+  a slot consumes the card: it *becomes* the seated chip. Palette originals are
+  permanent. A consequence worth knowing before it surprises you: anything used
+  twice has to be built twice.
 - **Droppability**: a thing can be lifted *for seating* iff it is a chip — a
-  complete collapsed derivation (palette variable chips are trivially chips).
-  Incomplete cards can be dragged to move on the canvas but never highlight
-  slots.
+  complete **collapsed** derivation. A complete card the visitor has expanded is
+  one they are taking apart, not one they are about to use. Incomplete cards drag
+  to move on the canvas but never highlight a slot.
+- **Legal targets light up together** on lift, so "where can this go" is answered
+  by looking rather than by trying.
 - **Auto-collapse**: when a card completes, flash the rewritten spans first
-  (~450ms decay), *then* collapse — sequenced, never simultaneous. The
-  collapsed card stays on the bench; nothing is auto-added to the palette.
-- **Uncollapse**: a loose complete card can be expanded/re-collapsed via a
-  caret appended after its conclusion run — inside the block, sized like a
-  token, so it wraps with the run instead of floating over a corner whose shape
-  keeps changing (pointerdown on it must not lift the card). A chip seated in
-  another card's slot cannot be uncollapsed in place — eject it first.
-- **Uncollapsed complete cards are mutable**: ejecting a fill un-completes
-  the card (it stops being seatable until refilled). "Locked closed" applies
-  to a chip while seated in someone else's slot, not to the slots of a card
-  expanded on the bench.
-- **Eject**: pointerdown on a seated chip lifts it out (fill cleared on
-  lift; Esc restores). Ejecting may **pop** keys (see model): popped keys
-  become loose cards (collapsed, complete) at their current visual position,
-  restyled loose.
-- **Delete**: release outside the bench, **or** onto a small delete icon
-  pinned in a screen corner, shown only while something is carried, treated
-  as a drop target branch before bench-place in the resolution order. No
-  undo (accepted for the prototype).
-- **Keyboard adapter**: the deleted "carry" mode from the design study is the
-  keyboard path. Same state machine as drag; only the event→transition mapping
-  differs. Enter on a palette entry **places a copy** on the bench and focuses
-  it; from the bench, Enter on a chip lifts, Tab cycles legal slots, Enter
-  seats, Esc cancels; Enter on a seated chip ejects it back onto the bench.
-  Palette entries place rather than lift because most of them are incomplete
-  templates and lifting one would do nothing — a keyboard user could never get a
-  `wi` card onto the bench, and the whole derivation would be pointer-only.
-  Scope: the *fill* path; keyboard card-moving on the canvas is a known issue,
-  not a requirement.
-- Drop resolution, clamping, z-bump, window-level listeners, resize
-  re-clamping: as HANDOFF.md §1, with the delete-target branch added. Test
-  resize *while a piece is lifted*.
+  (~120ms hold, ~450ms decay), *then* collapse — sequenced, never simultaneous,
+  so the visitor sees what changed before the card folds up and hides it.
+- **Uncollapse**: a loose complete card expands and re-collapses via a caret
+  appended after its conclusion run — inside the block, sized like a token, so it
+  wraps with the run instead of floating over a corner whose shape keeps
+  changing. A chip seated in another card's slot cannot be uncollapsed in
+  place — eject it first.
+- **Eject**: pointerdown on a seated chip lifts it out, clearing the fill *on
+  lift* so the host visibly reverts as you pull. Esc restores it, along with any
+  keys that popped — which is the eject-and-reseat-is-identity property used in
+  anger.
+- **Drop resolution order**, on release: a legal slot, then the delete target,
+  then the bench, then nothing (released clean off the bench, which discards).
+  An *illegal* slot is not highlighted and falls through to the bench branch —
+  the piece lands on the canvas where it was dropped rather than bouncing back.
+- **Overlap-match is a rendered metaphor, not a hit test.** Legality is the logic
+  layer; resolution is `elementFromPoint` → `[data-slot]` → `canSeat*`. Never
+  implement geometric overlap matching.
+- **Delete**: release outside the bench, or onto the target pinned in the corner
+  while something is carried. No undo (accepted for the prototype).
+- **Keyboard adapter**: the same state machine, a different event→transition
+  mapping. Enter on a palette entry **places a copy** on the bench and focuses
+  it; from the bench, Enter on a chip lifts, Tab cycles legal slots, Enter seats,
+  Esc cancels; Enter on a seated chip ejects it back onto the bench. Palette
+  entries place rather than lift because most of them are incomplete templates
+  and lifting one would do nothing — a keyboard user could never get a `wi` card
+  onto the bench, and the whole derivation would be pointer-only.
+- Pointer listeners for move, up and Escape go on `window`, not on the block: the
+  pointer routinely leaves the block mid-drag, and a release outside the bench is
+  a real gesture rather than a lost one.
+- Cards are clamped inside the bench, re-clamped when it resizes, and z-bumped to
+  the front on each drop. Resize is tested *while a piece is lifted*.
 
 ## Rendering
 
 - **Block shape**: a card is a vertical stack of left-aligned rows — one per
-  socket, one per lock, then the conclusion row. **Each row is
-  shrink-to-fit** (width: max-content, capped by the block max-width), so the
-  silhouette is a staircase that changes as slots fill. Collapsed cards
-  render the conclusion row only (which still wraps — "one-liner" means one
-  row, not one visual line).
-- **Socket row**: typecode cell + a dashed typecode-shaped notch. A seated
-  chip renders as its (collapsed) conclusion row seated so that its typecode
-  cell exactly overlaps the notch — the L-shape metaphor: only the typecode
-  part must "fit".
-- **Lock row**: a dashed full-silhouette **picture** of the required
-  statement — the instantiated lock rendered with the same token renderer,
-  dashed outline, variable chips where sockets are unfilled. Inert until all
-  sockets are filled; it rewrites live as sockets fill, then becomes
-  hot-highlightable. A seated key overlays the picture exactly.
-- **Overlap-match is a rendered metaphor, not a hit test.** Legality is the
-  logic layer; drop resolution is `elementFromPoint` → slot → `canSeat*`; on
-  success the chip *snaps* to the seat position. Never implement geometric
-  overlap matching.
-- **Ghost**: unrotated, scale 1, opacity ≈ 0.65, minimal shadow — the user
-  must be able to visually compare the carried chip against the slot it's
-  over. (Supersedes HANDOFF.md's rotated opaque ghost.) Optional polish:
-  snap-preview into the seat position while hovering a legal slot.
-- **Seated vs loose tint**: seated chips get a distinct background from loose
-  cards; a popped key visibly changes to loose without moving.
-- **Outline component**: do not draw perimeters edge-by-edge per row. Lay out
-  rows with CSS grid; draw each block outline as one absolutely-positioned
-  SVG `<path>` whose staircase geometry derives from measured row rects
-  (ResizeObserver). One `BlockOutline` component serves three uses: card
-  perimeter (solid), lock picture (dashed), legal-target highlight (hot
-  dashed). This replaces all of HANDOFF.md's border arithmetic.
-- **Rewrite flash**: on any seat, every token span produced by it flashes
-  (~120ms hold, 450ms decay), keyed by slot path; all occurrences of a
-  variable flash together. Colours, type, motion tokens: HANDOFF.md §3 where
-  not superseded here.
-- Since seated chips are collapsed one-liners, there is **no per-level
-  indent** — HANDOFF.md's deep-nesting phone concern is largely dissolved.
-  Wrap rules for token runs: HANDOFF.md §4 unchanged.
-
-## Superseded from HANDOFF.md (do not implement)
-
-- Nested blocks rendered expanded inside placeholder rows; per-level stem
-  indent (`--stem-w` × depth); provenance-by-depth tints beyond flat spans.
-- Pull-out of *incomplete* sub-blocks; `restore`-based carry of partial state
-  beyond the Esc path described above.
-- "⊢ blocks are terminal" (study artifact — locks accept ⊢ chips).
-- Rotated, opaque, heavy-shadow ghost.
-- "No delete button" (the corner delete target exists now).
-- Carry mode deletion (it returns as the keyboard adapter).
+  socket, one per lock, then the conclusion. **Each row is shrink-to-fit**, so
+  the silhouette is a staircase that changes as slots fill. Collapsed cards
+  render the conclusion row only, which still wraps: "one-liner" means one row,
+  not one visual line.
+- **Socket row**: the typecode the row expects, then a dashed typecode-shaped
+  notch. A seated chip leads with its own typecode cell, which `canSeatSocket`
+  guarantees is the same typecode — the fit is the thing you see. An
+  identity-coloured edge marks where the socket stops and its contents start.
+- **Lock row**: a dashed full-silhouette **picture** of the required statement,
+  drawn with the same token renderer, variable chips where sockets are unfilled.
+  Inert until all sockets are filled; rewrites live as they fill; then
+  highlightable. A seated key overlays the picture.
+- **Outline component**: perimeters are never drawn edge-by-edge per row. Rows
+  lay out in a grid and each block outline is one absolutely-positioned SVG
+  `<path>` whose staircase geometry comes from measured row rects. One
+  `BlockOutline` serves three uses: card perimeter (solid), lock picture
+  (dashed), legal-target highlight (hot dashed). It is drawn *over* the rows —
+  they are opaque, and each carries the block background, so the union of the
+  rows is the staircase and the outline needs no fill.
+- **Wrap**: every token is its own element with `white-space: nowrap`, so the
+  only break points are the gaps between tokens. No hyphenation, no break inside
+  `->`, and a slot chip moves whole to the next line rather than splitting.
+  Wrapped lines are not hanging-indented. Blocks are capped against the **bench**
+  and never the viewport.
+- **Ghost**: unrotated, bench scale, translucent — the visitor has to be able to
+  compare the carried chip against the slot it is over.
+- **Seated vs loose tint**: seated chips get a distinct background; a popped key
+  visibly becomes loose without moving.
+- **Rewrite flash**: on any seat, every token span that seat produced flashes,
+  keyed by the slot; all occurrences of a variable flash together, because
+  ax-1's two `ph`s are one substitution and not two.
 
 ## Palette JSON
 
 `src/palettes/<name>.json` — `{ variables, templates }`, imported as raw text
 (Vite `?raw`) rather than fetched from `public/`, so page init stays synchronous
-and the validator still runs on the exact shipped bytes. Shape-checked at load
-by a plain TS assert (no zod). Field names use the new vocabulary
-(`sockets`, `locks`, `conclusion`); token content remains a byte-faithful
-transcription of set.mm, tested against `reference/set.mm-propcalc.mm`.
+and the validator still runs on the exact shipped bytes. Shape-checked at load by
+a plain TS assert (no zod); a malformed palette throws loudly at startup, because
+a quiet partial load would surface much later as a block that mysteriously
+accepts nothing.
 
-- Design-study palette: `ph`, `ps`, `wi`, `ax-1`.
-- Prototype palette: variable chips, `wn`, `wi`, `ax-1`, `ax-2`, `ax-3`,
-  `ax-mp` (first template with a lock).
+- Prototype palette: variable chips, `wn`, `wi`, `ax-1`, `ax-2`, `ax-3`, `ax-mp`
+  (the first template with a lock, and so the one that turns a pile of wffs into
+  a derivation).
+- Design-study palette: `ph`, `ps`, `wi`, `ax-1` — kept as the smaller fixture.
 
 ## Notation
 
@@ -236,51 +229,92 @@ the database calls them. An unmapped token renders as itself.
 Mathematical Alphanumeric Symbols block (`ph` is U+1D711, not Greek φ), which
 most monospace faces do not cover.
 
+## Rejected
+
+Built or specified, then dropped. Recorded so they are not re-proposed.
+
+- **Carry mode** (tap to lift, tap a slot to drop) — built in full alongside
+  drag in the design study; drag won. It returned as the keyboard adapter.
+- **A flat model** — `fills: Map<string, Expr>` with a parallel `Provenance`
+  tree. Replaced by the recursive chip: two structures that had to be kept in
+  step became one that cannot disagree with itself.
+- **Nested blocks rendered expanded inside socket rows**, with a per-level stem
+  indent and provenance tints by depth. Seated chips are collapsed one-liners,
+  so there is no depth — which also dissolved the deep-nesting phone concern.
+- **Chunky coloured slabs, one hue per block family** — the family hues collided
+  with per-variable identity colours. Replaced by white blocks with a black
+  perimeter, colour reserved for *type* and *identity*.
+- **Quiet typographic direction** (warm paper, thin notches, no colour) — lost to
+  the chunky, diagrammatic direction.
+- **One bordered box per row** — replaced by the single measured SVG outline.
+  Border arithmetic per edge broke every time a row changed width.
+- **Bench as an ordered list of full-width rows** — replaced by a free canvas.
+- **`✕` delete button on every card** — replaced by drag-out-of-bench, and then
+  by the corner delete target.
+- **Viewport-relative block max-width (`78vw`)** — a 520px block "fits" 78vw
+  while overflowing a 380px bench. Capped against the bench instead.
+- **Rotated, opaque, heavy-shadow ghost** — you cannot compare a rotated ghost
+  against the slot underneath it.
+- **`showProvenance` / `slotLabels` toggles** — hardcoded on.
+- **"⊢ blocks are terminal"** — a design-study artifact. Locks accept ⊢ chips;
+  that is what ax-mp is for.
+
+## Known issues (accepted)
+
+- **Card collision.** Cards can be dropped overlapping; there is no nudge, snap
+  or auto-layout. A card that grows after a fill is clamped back inside the bench
+  but may end up on top of another.
+- **Eject placement.** An ejected chip lands near the host it came from, which
+  frequently overlaps it.
+- **The post-fill re-clamp runs a beat late**, so a card that grew can jump
+  slightly.
+- **Rapid successive seats** cut the previous flash short — there is one flash
+  key in the render state.
+- **No undo**, and no way to clear the bench.
+- **Keyboard card-moving on the canvas** is not implemented. The keyboard covers
+  place, lift, seat, eject and cancel — the fill path — which is enough to derive
+  `⊢ ( ph -> ph )` with no pointer.
+- **Touch is not validated on a device.** `touch-action: none` on blocks and a
+  scrollable bench coexist in principle, but dragging near a bench edge has no
+  auto-scroll.
+- **Math glyphs have no `aria-label`.** `data-token` keeps the ASCII in the DOM,
+  but what a screen reader makes of U+1D711 is untested.
+
 ## ⟨OPEN⟩ Design decisions
 
-- **Derived-list / palette growth** — completed chips currently just live on
-  the bench. Whether there's a "keep to palette" gesture, a starter/derived
-  palette split, and its naming: undecided. Don't build; don't foreclose
-  (chips are immutable and self-contained, so any future mechanism is
-  additive).
-- **Page framing** — title + a sentence or two + one ignorable invitation,
-  prose not architecture; decide before M4.
-- **Visual refinements** — the handoff's open issues (card collision, clamp
-  jump, pull-out overlap placement, rapid-flash truncation, drag auto-scroll
-  near bench edges) are accepted known issues unless one becomes blocking.
+- **Derived-list / palette growth** — completed chips currently just live on the
+  bench. Whether there is a "keep to palette" gesture, a starter/derived palette
+  split, and its naming: undecided. Don't build; don't foreclose (chips are
+  immutable and self-contained, so any future mechanism is additive).
+- **Page framing** — title, a sentence or two, one ignorable invitation; prose,
+  not architecture. Due before shipping.
 
-## Build order
+## Status
 
-- **M1R — rework logic layer** (blocks everything). Chip/Card recursive
-  model, new vocabulary throughout, operations above. Tests: keep the M1
-  suite's intent (multi-occurrence, typecode rejection, lock near-miss
-  one-token diff, gating, palette-vs-set.mm) and add: freeze/thaw round-trip;
-  eject-then-reseat identity; pop reconciliation (ejecting a socket pops
-  exactly the keys whose locks mention it); and the scripted
-  `⊢ ( ph -> ph )` derivation from ax-1/ax-2/ax-mp through the public API —
-  still the layer's acceptance test.
-- **M2 — static render.** Rows, notches, lock pictures (inert and live),
-  seated/loose tints, collapsed cards, `BlockOutline`; both viewports; wrap
-  stress fixture (deeply chained `wi`) at 390px. Kill-switch: per-statement
-  horizontal scroll if wrapping is irredeemable on phone.
-- **M3 — interaction.** Drag state machine + keyboard adapter, seat / eject /
-  pop, delete target, legal-target highlighting, flash-then-collapse
-  sequencing, resize-while-lifted. Playable milestone — stop and derive
-  `⊢ ( ph -> ph )` by hand the moment it works.
-- **M4 — framing prose, demo pass at both viewports, deploy rehearsal.**
+- **Logic layer** — complete. Recursive chip/card model, seat/eject/pop,
+  freeze/thaw, the palette validator, and the `⊢ ( ph -> ph )` acceptance test.
+- **Render** — complete. Rows, notches, lock pictures, seated/loose, collapsed
+  cards, `BlockOutline`, wrapping at both viewports, set.mm notation.
+- **Interaction** — complete. Drag and keyboard adapters over one state machine,
+  legal-target highlighting, flash-then-collapse, delete target, resize
+  mid-carry.
+- **Remaining** — framing prose, `PROCESS.md`, `reflections/assignment-1.md`, a
+  demo pass at both viewports, and the deploy rehearsal.
 
-## Verification (unchanged)
+## Verification
 
 - `pnpm check` (typecheck → build → oxlint → stylelint → vitest), plus
   `pnpm check:evidence`. No `npm` in this repo.
-- Browser checks from M2 on: `agent-browser` at both marking viewports, plus
-  a resize mid-interaction (including mid-carry) and a tab-through.
-- Commit small and straight to `main`; CI stays skipped while private; the
-  repo goes public at the cutoff. Rehearse the deploy: `pnpm build`, serve
-  `dist/` under `/comp4020-ass1-amackay/`, confirm no base-path 404s.
+- Browser checks with `agent-browser` at both marking viewports, plus a resize
+  mid-interaction (including mid-carry) and a tab-through.
+- `scripts/derive-id.sh` drives the derivation through real pointer gestures, up
+  to and including the exact-match lock seat.
+- Commit small and straight to `main`; CI stays skipped while private; the repo
+  goes public at the cutoff. Rehearse the deploy: `pnpm build`, serve `dist/`
+  under `/comp4020-ass1-amackay/`, confirm no base-path 404s.
 
 ## Out of scope (do not build)
 
 Distinct variable conditions, RPN export, backwards reasoning, unification,
-targets/levels, tutorials, .mm parsing, whole-proof-tree display, undo,
-persistence, infinite canvas / panning / zooming.
+targets, levels, game flow, tutorials, .mm parsing in the browser,
+whole-proof-tree display, undo, persistence, infinite canvas, panning, zooming.

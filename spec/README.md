@@ -6,7 +6,7 @@ this repo's name tells you which one applies: the course API maps repo prefixes
 to deliverables, and the `start` course skill walks your agent through pulling
 the right one. Read the spec on the site first; it's the contract.
 
-The checks in this directory come in three kinds:
+The checks in this directory come in two kinds:
 
 ## Invariants (shipped, always on)
 
@@ -16,12 +16,9 @@ one top-level heading, a document language, a real title, a mobile viewport, and
 alt text on images. They run against the **built** site (`dist/`), so they check
 what actually ships. Keep them green; don't delete them.
 
-## A worked example (yours to replace)
-
-`starter.test.ts` shows the shape of a spec test: it checks the starter page's
-intro hook. It's a worked example, not part of the always-on contract — replace
-or delete it when you replace the starter page. A starter implementation detail
-is not a universal invariant.
+(The template also shipped `starter.test.ts`, a worked example describing the
+starter page's intro hook. It was deleted along with that page, which is what its
+own failure message and this file told you to do.)
 
 ## Your spec tests (yours to write)
 
@@ -31,6 +28,12 @@ file alongside the invariants (any `spec/*.test.ts` runs with `pnpm check`).
 Some lines only a person can judge; leave those to the crit. Write tests for the
 **contracts** — what the page must do, not how you built it — so the tests
 survive a change of approach, or of stack.
+
+`assignment-1.test.ts` is this deliverable's, one `describe` per line of the
+published spec, with the lines no test can hold left as `it.todo` so they stay
+visible rather than quietly dropped. Two of its conventions are this repo's own,
+adopted because the spec asks for things "plain enough to write a test for": the
+`data-core-*` attributes, and one `###` heading per cited moment in `PROCESS.md`.
 
 A green suite here is backpressure, not a mark: your tutor verifies the live
 site against the published spec at the crit, and keeping your own tests green is
