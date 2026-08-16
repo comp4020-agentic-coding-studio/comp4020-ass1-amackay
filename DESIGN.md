@@ -124,9 +124,10 @@ state (`collapsed`, `x/y/z` live on Card but only the UI reads them).
   (~450ms decay), *then* collapse — sequenced, never simultaneous. The
   collapsed card stays on the bench; nothing is auto-added to the palette.
 - **Uncollapse**: a loose complete card can be expanded/re-collapsed via a
-  small toggle affordance (pointerdown on the toggle must not lift the card).
-  A chip seated in another card's slot cannot be uncollapsed in place — eject
-  it first.
+  caret appended after its conclusion run — inside the block, sized like a
+  token, so it wraps with the run instead of floating over a corner whose shape
+  keeps changing (pointerdown on it must not lift the card). A chip seated in
+  another card's slot cannot be uncollapsed in place — eject it first.
 - **Uncollapsed complete cards are mutable**: ejecting a fill un-completes
   the card (it stops being seatable until refilled). "Locked closed" applies
   to a chip while seated in someone else's slot, not to the slots of a card
@@ -140,10 +141,15 @@ state (`collapsed`, `x/y/z` live on Card but only the UI reads them).
   as a drop target branch before bench-place in the resolution order. No
   undo (accepted for the prototype).
 - **Keyboard adapter**: the deleted "carry" mode from the design study is the
-  keyboard path — focus a chip, Enter lifts, Tab cycles legal slots, Enter
-  seats, Esc cancels. Same state machine as drag; only the event→transition
-  mapping differs. Scope: the *fill* path only; keyboard card-moving on the
-  canvas is a known issue, not a requirement.
+  keyboard path. Same state machine as drag; only the event→transition mapping
+  differs. Enter on a palette entry **places a copy** on the bench and focuses
+  it; from the bench, Enter on a chip lifts, Tab cycles legal slots, Enter
+  seats, Esc cancels; Enter on a seated chip ejects it back onto the bench.
+  Palette entries place rather than lift because most of them are incomplete
+  templates and lifting one would do nothing — a keyboard user could never get a
+  `wi` card onto the bench, and the whole derivation would be pointer-only.
+  Scope: the *fill* path; keyboard card-moving on the canvas is a known issue,
+  not a requirement.
 - Drop resolution, clamping, z-bump, window-level listeners, resize
   re-clamping: as HANDOFF.md §1, with the delete-target branch added. Test
   resize *while a piece is lifted*.
@@ -220,8 +226,6 @@ transcription of set.mm, tested against `reference/set.mm-propcalc.mm`.
   palette split, and its naming: undecided. Don't build; don't foreclose
   (chips are immutable and self-contained, so any future mechanism is
   additive).
-- **Uncollapse affordance** — a toggle must exist (see semantics); its exact
-  form (corner icon, double-tap, …) is a design iteration.
 - **Page framing** — title + a sentence or two + one ignorable invitation,
   prose not architecture; decide before M4.
 - **Visual refinements** — the handoff's open issues (card collision, clamp
