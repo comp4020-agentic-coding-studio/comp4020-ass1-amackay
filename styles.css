@@ -177,6 +177,33 @@ body {
   overflow: auto;
 }
 
+/* One measured path per block, behind its rows. Filled as well as stroked, so
+   the background follows the staircase instead of a rectangle poking out of it. */
+.outline {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.outline path {
+  fill: var(--block-bg);
+  stroke: var(--ink);
+  stroke-width: var(--border-w);
+}
+
+.outline--picture path {
+  fill: none;
+  stroke: var(--var-line, var(--panel-border));
+  stroke-dasharray: 5 4;
+}
+
+.outline--hot path {
+  fill: var(--hot-fill);
+  stroke: var(--hot-line);
+  stroke-dasharray: 5 4;
+}
+
 /* One indirection, so a notch, a variable chip and a lock outline all read the
    same variable's colour from one place. */
 [data-var="ph"] {
