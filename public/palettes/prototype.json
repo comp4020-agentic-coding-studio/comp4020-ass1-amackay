@@ -4,29 +4,29 @@
     { "label": "wps", "var": "ps", "typecode": "wff" },
     { "label": "wch", "var": "ch", "typecode": "wff" }
   ],
-  "statements": [
+  "templates": [
     {
       "label": "wn",
-      "floats": [{ "var": "ph", "typecode": "wff" }],
-      "essentials": [],
+      "sockets": [{ "var": "ph", "typecode": "wff" }],
+      "locks": [],
       "conclusion": ["wff", "-.", "ph"]
     },
     {
       "label": "wi",
-      "floats": [
+      "sockets": [
         { "var": "ph", "typecode": "wff" },
         { "var": "ps", "typecode": "wff" }
       ],
-      "essentials": [],
+      "locks": [],
       "conclusion": ["wff", "(", "ph", "->", "ps", ")"]
     },
     {
       "label": "ax-mp",
-      "floats": [
+      "sockets": [
         { "var": "ph", "typecode": "wff" },
         { "var": "ps", "typecode": "wff" }
       ],
-      "essentials": [
+      "locks": [
         ["|-", "ph"],
         ["|-", "(", "ph", "->", "ps", ")"]
       ],
@@ -34,21 +34,21 @@
     },
     {
       "label": "ax-1",
-      "floats": [
+      "sockets": [
         { "var": "ph", "typecode": "wff" },
         { "var": "ps", "typecode": "wff" }
       ],
-      "essentials": [],
+      "locks": [],
       "conclusion": ["|-", "(", "ph", "->", "(", "ps", "->", "ph", ")", ")"]
     },
     {
       "label": "ax-2",
-      "floats": [
+      "sockets": [
         { "var": "ph", "typecode": "wff" },
         { "var": "ps", "typecode": "wff" },
         { "var": "ch", "typecode": "wff" }
       ],
-      "essentials": [],
+      "locks": [],
       "conclusion": [
         "|-",
         "(", "(", "ph", "->", "(", "ps", "->", "ch", ")", ")",
@@ -59,11 +59,11 @@
     },
     {
       "label": "ax-3",
-      "floats": [
+      "sockets": [
         { "var": "ph", "typecode": "wff" },
         { "var": "ps", "typecode": "wff" }
       ],
-      "essentials": [],
+      "locks": [],
       "conclusion": [
         "|-",
         "(", "(", "-.", "ph", "->", "-.", "ps", ")", "->", "(", "ps", "->", "ph", ")", ")"

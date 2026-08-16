@@ -9,53 +9,55 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  canFillLock,
-  conclusionExpr,
-  createInstance,
-  fillFloat,
-  fillLock,
-  instantiated,
+  canSeatLock,
+  conclusionTokens,
+  createCard,
+  freeze,
+  instantiatedLocks,
   isComplete,
   parsePalette,
-  statement,
-  variableExpr,
-  type BlockInstance,
-  type Expr,
-  type Statement,
+  seatLock,
+  seatSocket,
+  template,
+  variable,
+  variableChip,
+  type Card,
+  type Chip,
+  type Template,
 } from "./index";
 import { readPalette, setMm } from "./fixtures";
 
 const palette = parsePalette(readPalette("prototype"), "prototype.json");
 
-const wi = statement(palette, "wi");
-const ax1 = statement(palette, "ax-1");
-const ax2 = statement(palette, "ax-2");
-const axMp = statement(palette, "ax-mp");
+const wi = template(palette, "wi");
+const ax1 = template(palette, "ax-1");
+const ax2 = template(palette, "ax-2");
+const axMp = template(palette, "ax-mp");
 
 let serial = 0;
-const block = (s: Statement): BlockInstance => createInstance(s, `b${(serial += 1)}`);
+const card = (t: Template): Card =>
+  createCard(t, { id: `c${(serial += 1)}`, x: 0, y: 0, z: 0 });
 
-/** Fill every float of a block in one go and harvest its conclusion. */
-function apply(s: Statement, fills: Record<string, Expr>): Expr {
-  let instance = block(s);
-  for (const [name, expr] of Object.entries(fills)) {
-    instance = fillFloat(instance, name, expr);
+/** Fill every socket of a card in one go and collapse it to a chip. */
+function apply(t: Template, fills: Record<string, Chip>): Chip {
+  let instance = card(t);
+  for (const [name, chip] of Object.entries(fills)) {
+    instance = seatSocket(instance, name, chip);
   }
-  return conclusionExpr(instance);
+  return freeze(instance);
 }
 
-/** A wff built by hand, exactly as a visitor would build one from wi blocks. */
-const imp = (antecedent: Expr, consequent: Expr): Expr =>
+/** A wff built by hand, exactly as a visitor would build one from wi cards. */
+const imp = (antecedent: Chip, consequent: Chip): Chip =>
   apply(wi, { ph: antecedent, ps: consequent });
 
-const chip = (name: string): Expr =>
-  variableExpr(palette.variables.find((v) => v.var === name)!);
+const chip = (name: string): Chip => variableChip(variable(palette, name));
 
 /** Everything after the typecode — how a wff reads once substituted into place. */
-const body = (expr: Expr) => expr.tokens.slice(1);
+const body = (c: Chip) => conclusionTokens(c).slice(1);
 
 describe("acceptance: ⊢ ( ph -> ph ) from ax-1, ax-2 and ax-mp", () => {
-  // The wffs the derivation substitutes, built from wi blocks over a ph chip.
+  // The wffs the derivation substitutes, built from wi cards over a ph chip.
   const A = chip("ph"); //                                    ph
   const B = imp(A, A); //                                     ( ph -> ph )
   const C = imp(B, A); //                       ( ( ph -> ph ) -> ph )
@@ -64,8 +66,8 @@ describe("acceptance: ⊢ ( ph -> ph ) from ax-1, ax-2 and ax-mp", () => {
   const F = imp(E, B); //   ( ( ph -> ( ph -> ph ) ) -> ( ph -> ph ) )
 
   it("builds its wffs the way a visitor would", () => {
-    expect(B.tokens).toEqual(["wff", "(", "ph", "->", "ph", ")"]);
-    expect(F.tokens).toEqual([
+    expect(conclusionTokens(B)).toEqual(["wff", "(", "ph", "->", "ph", ")"]);
+    expect(conclusionTokens(F)).toEqual([
       "wff", "(", "(", "ph", "->", "(", "ph", "->", "ph", ")", ")",
       "->", "(", "ph", "->", "ph", ")", ")",
     ]);
@@ -77,32 +79,32 @@ describe("acceptance: ⊢ ( ph -> ph ) from ax-1, ax-2 and ax-mp", () => {
   // Step 2 — ax-2 with ph := ph, ps := ( ph -> ph ), ch := ph.
   const step2 = apply(ax2, { ph: A, ps: B, ch: A });
 
-  it("rewrites ax-mp's essentials under substitution before any lock is filled", () => {
-    // Step 3 is the interesting one: ax-mp's two premises are hypotheses on the
-    // block, and they only become matchable once its floats are filled. This is
-    // the layer doing its actual work.
-    let mp1 = block(axMp);
-    mp1 = fillFloat(mp1, "ph", D);
-    mp1 = fillFloat(mp1, "ps", F);
+  it("rewrites ax-mp's lock pictures under substitution before any key is seated", () => {
+    // Step 3 is the interesting one: ax-mp's two premises are locks on the card,
+    // and they only become matchable once its sockets are filled. This is the
+    // layer doing its actual work.
+    let mp1 = card(axMp);
+    mp1 = seatSocket(mp1, "ph", D);
+    mp1 = seatSocket(mp1, "ps", F);
 
     expect(isComplete(mp1)).toBe(false);
-    expect(instantiated(mp1).essentials).toEqual([
+    expect(instantiatedLocks(mp1)).toEqual([
       ["|-", ...body(D)],
       ["|-", "(", ...body(D), "->", ...body(F), ")"],
     ]);
 
     // The premises are real premises, not interchangeable tokens: neither fits
-    // the other's slot. Catches an index swap the happy path would hide.
-    expect(canFillLock(mp1, 0, step2)).toBe(false);
-    expect(canFillLock(mp1, 1, step1)).toBe(false);
-    expect(canFillLock(mp1, 0, step1)).toBe(true);
-    expect(canFillLock(mp1, 1, step2)).toBe(true);
+    // the other's lock. Catches an index swap the happy path would hide.
+    expect(canSeatLock(mp1, 0, step2)).toBe(false);
+    expect(canSeatLock(mp1, 1, step1)).toBe(false);
+    expect(canSeatLock(mp1, 0, step1)).toBe(true);
+    expect(canSeatLock(mp1, 1, step2)).toBe(true);
   });
 
   // Step 3 — ax-mp, minor premise step 1, major premise step 2.
-  const step3 = conclusionExpr(
-    fillLock(
-      fillLock(fillFloat(fillFloat(block(axMp), "ph", D), "ps", F), 0, step1),
+  const step3 = freeze(
+    seatLock(
+      seatLock(seatSocket(seatSocket(card(axMp), "ph", D), "ps", F), 0, step1),
       1,
       step2,
     ),
@@ -112,33 +114,34 @@ describe("acceptance: ⊢ ( ph -> ph ) from ax-1, ax-2 and ax-mp", () => {
   const step4 = apply(ax1, { ph: A, ps: A });
 
   // Step 5 — ax-mp again, and the derivation closes.
-  const step5 = conclusionExpr(
-    fillLock(
-      fillLock(fillFloat(fillFloat(block(axMp), "ph", E), "ps", B), 0, step4),
+  const step5 = freeze(
+    seatLock(
+      seatLock(seatSocket(seatSocket(card(axMp), "ph", E), "ps", B), 0, step4),
       1,
       step3,
     ),
   );
 
   it("reaches the statement set.mm calls id", () => {
-    const id = setMm().statements.get("id");
+    const id = setMm().templates.get("id");
     expect(id, "id is missing from the reference database").toBeDefined();
-    expect(step5.tokens).toEqual(id!.conclusion);
-    expect(step5.tokens).toEqual(["|-", "(", "ph", "->", "ph", ")"]);
+    expect(conclusionTokens(step5)).toEqual(id!.conclusion);
+    expect(conclusionTokens(step5)).toEqual(["|-", "(", "ph", "->", "ph", ")"]);
   });
 
   it("keeps the proof it took to get there", () => {
-    // Provenance is rendered nowhere, but it has to be there: un-collapse and
-    // proof export are meant to stay possible without a model change.
-    expect(step5.provenance.label).toBe("ax-mp");
-    expect(step5.provenance.locks[1]?.label).toBe("ax-mp");
-    expect(step5.provenance.locks[0]?.label).toBe("ax-1");
+    // The chip *is* the proof: un-collapse and proof export need no second
+    // record to stay in step with the tokens.
+    expect(step5.template.label).toBe("ax-mp");
+    expect(step5.keys[1].template.label).toBe("ax-mp");
+    expect(step5.keys[0].template.label).toBe("ax-1");
+    expect(step5.keys[1].keys.map((k) => k.template.label)).toEqual(["ax-1", "ax-2"]);
   });
 
   it("mutated nothing upstream along the way", () => {
-    // Twenty-five operations later, the first chip and a fresh block are
-    // untouched — the immutable fill API earning its keep.
-    expect(A.tokens).toEqual(["wff", "ph"]);
-    expect(block(wi).fills.size).toBe(0);
+    // Twenty-five operations later, the first chip and a fresh card are
+    // untouched — the immutable seat API earning its keep.
+    expect(conclusionTokens(A)).toEqual(["wff", "ph"]);
+    expect(card(wi).fills).toEqual({});
   });
 });

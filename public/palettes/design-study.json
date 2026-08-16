@@ -3,23 +3,23 @@
     { "label": "wph", "var": "ph", "typecode": "wff" },
     { "label": "wps", "var": "ps", "typecode": "wff" }
   ],
-  "statements": [
+  "templates": [
     {
       "label": "wi",
-      "floats": [
+      "sockets": [
         { "var": "ph", "typecode": "wff" },
         { "var": "ps", "typecode": "wff" }
       ],
-      "essentials": [],
+      "locks": [],
       "conclusion": ["wff", "(", "ph", "->", "ps", ")"]
     },
     {
       "label": "ax-1",
-      "floats": [
+      "sockets": [
         { "var": "ph", "typecode": "wff" },
         { "var": "ps", "typecode": "wff" }
       ],
-      "essentials": [],
+      "locks": [],
       "conclusion": ["|-", "(", "ph", "->", "(", "ps", "->", "ph", ")", ")"]
     }
   ]

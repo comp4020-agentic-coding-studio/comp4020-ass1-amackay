@@ -6,31 +6,33 @@
 // Nothing in this directory imports the DOM. `purity.test.ts` enforces it.
 
 export type {
-  BlockInstance,
-  Expr,
+  Card,
+  Chip,
   Expression,
-  Float,
   Palette,
-  Provenance,
-  Statement,
+  Placement,
+  Socket,
+  Template,
   Token,
   Typecode,
   Variable,
 } from "./types";
 export { TYPECODES } from "./types";
 
-export { instantiate, same } from "./expression";
+export { same, substitute } from "./expression";
+
+export { conclusionTokens, variableChip, variableTemplate } from "./chip";
 
 export {
-  canFillFloat,
-  canFillLock,
-  conclusionExpr,
-  createInstance,
-  fillFloat,
-  fillLock,
-  instantiated,
+  canSeatLock,
+  canSeatSocket,
+  createCard,
+  freeze,
+  instantiatedConclusion,
+  instantiatedLocks,
   isComplete,
-  variableExpr,
-} from "./instance";
+  seatLock,
+  seatSocket,
+} from "./card";
 
-export { assertPalette, parsePalette, statement } from "./palette";
+export { assertPalette, parsePalette, template, variable } from "./palette";

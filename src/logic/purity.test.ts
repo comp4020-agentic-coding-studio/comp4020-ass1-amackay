@@ -29,7 +29,7 @@ describe("the logic layer is pure", () => {
     // Guards against the glob quietly matching nothing, which would make every
     // assertion below vacuously true.
     expect(modules.map((m) => m.name).sort()).toEqual([
-      "expression.ts", "index.ts", "instance.ts", "palette.ts", "types.ts",
+      "card.ts", "chip.ts", "expression.ts", "index.ts", "palette.ts", "types.ts",
     ]);
   });
 

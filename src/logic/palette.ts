@@ -1,5 +1,5 @@
 import { TYPECODES } from "./types";
-import type { Expression, Float, Palette, Statement, Typecode, Variable } from "./types";
+import type { Expression, Palette, Socket, Template, Typecode, Variable } from "./types";
 
 /**
  * Shape-check a parsed palette. A plain assert function rather than a schema
@@ -7,8 +7,8 @@ import type { Expression, Float, Palette, Statement, Typecode, Variable } from "
  *
  * Malformed palettes throw loudly, naming the path that is wrong. A palette is
  * hand-authored and loaded once at startup, so a quiet partial load would
- * surface much later as a block that mysteriously accepts nothing — and the
- * only visible symptom would be in the interaction, where it is hardest to read.
+ * surface much later as a card that mysteriously accepts nothing — and the only
+ * visible symptom would be in the interaction, where it is hardest to read.
  */
 export function assertPalette(value: unknown, source: string): asserts value is Palette {
   const fail = (path: string, why: string): never => {
@@ -50,9 +50,12 @@ export function assertPalette(value: unknown, source: string): asserts value is 
     return tokens.map((t, i) => name(t, `${path}[${i}]`));
   };
 
-  const float = (v: unknown, path: string): Float => {
-    const f = record(v, path);
-    return { var: name(f["var"], `${path}.var`), typecode: typecode(f["typecode"], `${path}.typecode`) };
+  const socket = (v: unknown, path: string): Socket => {
+    const s = record(v, path);
+    return {
+      var: name(s["var"], `${path}.var`),
+      typecode: typecode(s["typecode"], `${path}.typecode`),
+    };
   };
 
   const root = record(value, "palette");
@@ -64,41 +67,41 @@ export function assertPalette(value: unknown, source: string): asserts value is 
     const label = name(declared["label"], `${path}.label`);
     if (seen.has(label)) fail(path, `repeats the label ${label}`);
     seen.add(label);
-    return { label, ...float(v, path) };
+    return { label, ...socket(v, path) };
   });
 
-  const statements: Statement[] = array(root["statements"], "statements").map((v, i) => {
-    const path = `statements[${i}]`;
-    const s = record(v, path);
-    const label = name(s["label"], `${path}.label`);
+  const templates: Template[] = array(root["templates"], "templates").map((v, i) => {
+    const path = `templates[${i}]`;
+    const t = record(v, path);
+    const label = name(t["label"], `${path}.label`);
     if (seen.has(label)) fail(path, `repeats the label ${label}`);
     seen.add(label);
 
-    const floats = array(s["floats"], `${path}.floats`).map((f, j) =>
-      float(f, `${path}.floats[${j}]`),
+    const sockets = array(t["sockets"], `${path}.sockets`).map((s, j) =>
+      socket(s, `${path}.sockets[${j}]`),
     );
-    const essentials = array(s["essentials"], `${path}.essentials`).map((e, j) =>
-      expression(e, `${path}.essentials[${j}]`),
+    const locks = array(t["locks"], `${path}.locks`).map((e, j) =>
+      expression(e, `${path}.locks[${j}]`),
     );
-    const conclusion = expression(s["conclusion"], `${path}.conclusion`);
+    const conclusion = expression(t["conclusion"], `${path}.conclusion`);
 
-    const slots = new Set(floats.map((f) => f.var));
-    if (slots.size !== floats.length) fail(`${path}.floats`, "declares a variable twice");
+    const slots = new Set(sockets.map((s) => s.var));
+    if (slots.size !== sockets.length) fail(`${path}.sockets`, "declares a variable twice");
 
-    // Every variable the statement mentions must have a slot to fill it. Without
-    // this a dropped float leaves a variable that can never be substituted, and
-    // the block would complete while still reading as a schema.
+    // Every variable the template mentions must have a socket to fill it. Without
+    // this a dropped socket leaves a variable that can never be substituted, and
+    // the card would complete while still reading as a schema.
     const declaredVars = new Set(variables.map((x) => x.var));
-    for (const token of [...essentials.flat(), ...conclusion]) {
+    for (const token of [...locks.flat(), ...conclusion]) {
       if (declaredVars.has(token) && !slots.has(token)) {
-        fail(path, `uses ${token} but declares no float for it`);
+        fail(path, `uses ${token} but declares no socket for it`);
       }
     }
 
-    return { label, floats, essentials, conclusion };
+    return { label, sockets, locks, conclusion };
   });
 
-  Object.assign(root, { variables, statements });
+  Object.assign(root, { variables, templates });
 }
 
 export function parsePalette(json: string, source: string): Palette {
@@ -112,9 +115,16 @@ export function parsePalette(json: string, source: string): Palette {
   return value;
 }
 
-/** Look a statement up by label. Throws if the palette hasn't got it. */
-export function statement(palette: Palette, label: string): Statement {
-  const found = palette.statements.find((s) => s.label === label);
-  if (!found) throw new Error(`palette has no statement ${label}`);
+/** Look a template up by label. Throws if the palette hasn't got it. */
+export function template(palette: Palette, label: string): Template {
+  const found = palette.templates.find((t) => t.label === label);
+  if (!found) throw new Error(`palette has no template ${label}`);
+  return found;
+}
+
+/** Look a variable chip's declaration up by the variable it declares. */
+export function variable(palette: Palette, varName: string): Variable {
+  const found = palette.variables.find((v) => v.var === varName);
+  if (!found) throw new Error(`palette has no variable ${varName}`);
   return found;
 }

@@ -5,7 +5,7 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { Expression, Statement, Typecode, Variable } from "./index";
+import type { Expression, Template, Typecode, Variable } from "./index";
 
 const SET_MM = resolve("reference/set.mm-propcalc.mm");
 
@@ -15,16 +15,16 @@ export function readPalette(name: string): string {
 }
 
 interface Frame {
-  floats: Variable[];
-  essentials: { label: string; expr: Expression }[];
+  variables: Variable[];
+  locks: { label: string; expr: Expression }[];
 }
 
 /** A Metamath database read far enough to check a palette against it. */
 export interface Database {
   /** Every `$a` and `$p`, with its mandatory hypotheses worked out. */
-  statements: Map<string, Statement>;
+  templates: Map<string, Template>;
   /** Every `$f`, by the variable it declares — the palette's chips. */
-  floats: Map<string, Variable>;
+  variables: Map<string, Variable>;
 }
 
 /**
@@ -37,16 +37,16 @@ export interface Database {
  * proof on the line after its conclusion. A line scanner gets both wrong.
  *
  * The point of computing the hypotheses rather than hardcoding them is ax-mp:
- * its floats are inherited from the enclosing scope and its two `$e`s live
- * inside `${ … $}`, and the palette JSON flattens both away. Deriving the
- * flattening from the file is what stops the test from agreeing with the
- * palette about a mistake.
+ * its `$f`s are inherited from the enclosing scope and its two `$e`s live inside
+ * `${ … $}`, and the palette JSON flattens both away. Deriving the flattening
+ * from the file is what stops the test from agreeing with the palette about a
+ * mistake.
  */
 export function readDatabase(source: string): Database {
   const tokens = source.split(/\s+/).filter(Boolean);
-  const statements = new Map<string, Statement>();
-  const floats = new Map<string, Variable>();
-  const frames: Frame[] = [{ floats: [], essentials: [] }];
+  const templates = new Map<string, Template>();
+  const variables = new Map<string, Variable>();
+  const frames: Frame[] = [{ variables: [], locks: [] }];
   let i = 0;
 
   // Consume tokens up to and including `terminator`, returning what came before.
@@ -70,7 +70,7 @@ export function readDatabase(source: string): Database {
       continue;
     }
     if (token === "${") {
-      frames.push({ floats: [], essentials: [] });
+      frames.push({ variables: [], locks: [] });
       continue;
     }
     if (token === "$}") {
@@ -90,21 +90,21 @@ export function readDatabase(source: string): Database {
     if (kind === "$f") {
       const [typecode, name] = take("$.");
       const declared: Variable = { label, var: name, typecode: typecode as Typecode };
-      frame.floats.push(declared);
-      floats.set(name, declared);
+      frame.variables.push(declared);
+      variables.set(name, declared);
     } else if (kind === "$e") {
-      frame.essentials.push({ label, expr: take("$.") });
+      frame.locks.push({ label, expr: take("$.") });
     } else if (kind === "$a" || kind === "$p") {
       // A $p's conclusion ends at `$=`; the compressed proof runs from there.
       const conclusion = take(kind === "$p" ? "$=" : "$.");
       if (kind === "$p") take("$.");
-      statements.set(label, mandatory(label, conclusion, frames));
+      templates.set(label, mandatory(label, conclusion, frames));
     } else {
       throw new Error(`unexpected ${kind} after label ${label}`);
     }
   }
 
-  return { statements, floats };
+  return { templates, variables };
 }
 
 /**
@@ -112,16 +112,16 @@ export function readDatabase(source: string): Database {
  * and every `$f` in scope whose variable actually appears — in declaration
  * order, not order of use.
  */
-function mandatory(label: string, conclusion: Expression, frames: Frame[]): Statement {
-  const essentials = frames.flatMap((f) => f.essentials).map((e) => e.expr);
-  const used = new Set<string>([...conclusion, ...essentials.flat()]);
+function mandatory(label: string, conclusion: Expression, frames: Frame[]): Template {
+  const locks = frames.flatMap((f) => f.locks).map((e) => e.expr);
+  const used = new Set<string>([...conclusion, ...locks.flat()]);
   return {
     label,
-    floats: frames
-      .flatMap((f) => f.floats)
-      .filter((f) => used.has(f.var))
+    sockets: frames
+      .flatMap((f) => f.variables)
+      .filter((v) => used.has(v.var))
       .map(({ var: name, typecode }) => ({ var: name, typecode })),
-    essentials,
+    locks,
     conclusion,
   };
 }
