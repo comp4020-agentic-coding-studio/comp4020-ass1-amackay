@@ -34,6 +34,10 @@ function region(root: ParentNode, attribute: string): HTMLElement {
 const DESIGN_CAP = 560;
 const BENCH_GUTTER = 26;
 
+/** Flash: hold bright for a frame or so, then decay. Matches `--t-token`. */
+const FLASH_HOLD = 120;
+const FLASH_DECAY = 450;
+
 /**
  * Cap blocks against the **bench**, never the viewport. `78vw` was the obvious
  * answer and the wrong one: a 520px block "fits" 78vw while overflowing a 380px
@@ -72,13 +76,18 @@ export function mount(root: ParentNode): void {
 
   /** The card the keyboard should come back to after a rebuild. */
   let focusId: string | null = null;
+  /** The seat whose spans are currently lit. */
+  let flash: SlotRef | null = null;
 
   const render = (): void => {
     const legal = new Set(workspace.legalSlots().map(slotPath));
 
     benchCards.replaceChildren(
       ...workspace.ordered().map((card) => {
-        const { element } = renderCard(card, variables);
+        const { element } = renderCard(card, variables, {
+          toggle: true,
+          flash: flash?.cardId === card.id ? flash : null,
+        });
         element.style.left = `${card.x}px`;
         element.style.top = `${card.y}px`;
         element.style.zIndex = String(card.z);
@@ -96,12 +105,37 @@ export function mount(root: ParentNode): void {
     if (focusId) benchCards.querySelector<HTMLElement>(`[data-card="${focusId}"]`)?.focus();
   };
 
+  /**
+   * A seat landed. Flash what it rewrote, and only once that has decayed let a
+   * completed card collapse — sequenced, never simultaneous, so the visitor sees
+   * *what changed* before the card folds up and hides it.
+   */
   const onSeat = (ref: SlotRef, completed: boolean): void => {
     focusId = ref.cardId;
+    flash = ref;
     render();
-    if (completed) workspace.collapse(ref.cardId);
-    render();
+
+    window.setTimeout(() => {
+      flash = null;
+      // Cleared from the live DOM rather than by re-rendering: a rebuild would
+      // replace the spans and restart the transition instead of decaying it.
+      for (const lit of benchCards.querySelectorAll(".is-flash")) lit.classList.remove("is-flash");
+
+      if (completed) {
+        window.setTimeout(() => {
+          workspace.collapse(ref.cardId);
+          render();
+        }, FLASH_DECAY);
+      }
+    }, FLASH_HOLD);
   };
+
+  benchCards.addEventListener("click", (event) => {
+    const toggle = (event.target as Element | null)?.closest<HTMLElement>("[data-collapse-toggle]");
+    if (!toggle) return;
+    workspace.toggleCollapsed(toggle.dataset["collapseToggle"] ?? "");
+    render();
+  });
 
   installDrag({
     workspace,

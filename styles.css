@@ -417,18 +417,42 @@ body {
   padding: 1px 1px 2px;
   color: var(--ink);
   white-space: nowrap;
+
+  /* The decay half of the rewrite flash: the class is removed after a short
+     hold and the colour falls back to whatever the token normally is. */
+  transition: background-color var(--t-token) ease;
 }
 
 .token--sub {
   padding: 1px 4px 2px;
   background: var(--prov-bg);
-  transition: background-color var(--t-token) ease;
 }
 
 .token--var {
   padding: 1px 6px 2px;
   background: var(--var-fill, var(--prov-bg));
   color: var(--var-ink, var(--ink));
+}
+
+.is-flash {
+  background: var(--flash-bg);
+}
+
+/* Rides at the end of the conclusion run, sized like a token so it wraps with
+   one rather than floating over the block's changing corner. */
+.collapse-toggle {
+  padding: 0 5px 2px;
+  border: none;
+  background: none;
+  color: var(--meta);
+  font-family: var(--mono);
+  font-size: var(--token-size);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.collapse-toggle:hover {
+  color: var(--ink);
 }
 
 /* The palette's 308px cap keeps it narrow beside a wide bench; once the bench

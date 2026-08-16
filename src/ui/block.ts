@@ -1,5 +1,6 @@
 import {
   conclusionTokens,
+  isComplete,
   socketsFilled,
   type Card,
   type Chip,
@@ -9,7 +10,7 @@ import {
 } from "../logic";
 import { createOutline, observeOutline } from "./outline";
 import { spans, statementCells, typecodeCell } from "./tokens";
-import { slotPath } from "./workspace";
+import { slotPath, type SlotRef } from "./workspace";
 
 /** A rendered block and the observers it owns. */
 export interface Rendered {
@@ -108,12 +109,45 @@ function lockRow(card: Card, index: number, variables: ReadonlySet<string>): Ren
   return { element, dispose: observeOutline(path, [inner]) };
 }
 
-function conclusionRow(card: Card, variables: ReadonlySet<string>): HTMLElement {
+function conclusionRow(
+  card: Card,
+  variables: ReadonlySet<string>,
+  withToggle: boolean,
+): HTMLElement {
   const element = row("conclusion");
-  element.append(
-    ...statementCells(spans(card.template.conclusion, expansion(card.fills)), variables),
-  );
+  const cells = statementCells(spans(card.template.conclusion, expansion(card.fills)), variables);
+  element.append(...cells);
+
+  // The caret rides at the end of the run, as one more token-sized flex item:
+  // inside the block, never colliding with the staircase outline, and moving
+  // with the wrap instead of floating over a corner that keeps changing shape.
+  if (withToggle && isComplete(card)) {
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "collapse-toggle";
+    toggle.dataset["collapseToggle"] = card.id;
+    toggle.textContent = card.collapsed ? "⌄" : "⌃";
+    toggle.setAttribute("aria-label", card.collapsed ? "Expand this derivation" : "Collapse");
+    cells[1].append(toggle);
+  }
   return element;
+}
+
+/**
+ * Light the spans a seat just rewrote.
+ *
+ * Scoped to the conclusion and the lock pictures: a seated chip's own spans
+ * carry `data-from` for *its* sockets, and flashing those would light tokens
+ * this seat did not touch. All occurrences of the variable go together, which is
+ * the point — ax-1's two `ph`s are one substitution, not two.
+ */
+function markFlash(element: HTMLElement, ref: SlotRef): void {
+  if (ref.kind === "lock") {
+    element.querySelector(`[data-seated="${slotPath(ref)}"]`)?.classList.add("is-flash");
+    return;
+  }
+  const scoped = `.row--conclusion [data-from="${ref.var}"], .picture-row [data-from="${ref.var}"]`;
+  for (const span of element.querySelectorAll(scoped)) span.classList.add("is-flash");
 }
 
 /**
@@ -121,7 +155,18 @@ function conclusionRow(card: Card, variables: ReadonlySet<string>): HTMLElement 
  * shrink-to-fit, so the silhouette is a staircase that changes as slots fill —
  * and a collapsed card is the conclusion row alone, which still wraps.
  */
-export function renderCard(card: Card, variables: ReadonlySet<string>): Rendered {
+export interface RenderOptions {
+  /** The seat that just happened, whose spans should flash. */
+  flash?: SlotRef | null;
+  /** Whether this card can be expanded and re-collapsed — bench cards only. */
+  toggle?: boolean;
+}
+
+export function renderCard(
+  card: Card,
+  variables: ReadonlySet<string>,
+  options: RenderOptions = {},
+): Rendered {
   const element = document.createElement("div");
   element.className = "block";
   element.dataset["card"] = card.id;
@@ -143,9 +188,10 @@ export function renderCard(card: Card, variables: ReadonlySet<string>): Rendered
       disposers.push(lock.dispose);
     });
   }
-  rows.push(conclusionRow(card, variables));
+  rows.push(conclusionRow(card, variables, options.toggle ?? false));
 
   element.append(svg, ...rows);
+  if (options.flash) markFlash(element, options.flash);
   disposers.push(observeOutline(path, rows));
 
   return {
