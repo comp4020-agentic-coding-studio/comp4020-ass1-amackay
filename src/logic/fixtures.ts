@@ -9,9 +9,9 @@ import type { Expression, Template, Typecode, Variable } from "./index";
 
 const SET_MM = resolve("reference/set.mm-propcalc.mm");
 
-/** The raw JSON a palette ships as — the exact bytes the browser will fetch. */
+/** The raw JSON a palette ships as — the exact bytes the bundle will carry. */
 export function readPalette(name: string): string {
-  return readFileSync(resolve("public/palettes", `${name}.json`), "utf8");
+  return readFileSync(resolve("src/palettes", `${name}.json`), "utf8");
 }
 
 interface Frame {
