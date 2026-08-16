@@ -1,4 +1,5 @@
 import type { Expression, Token, Typecode } from "../logic";
+import { glyph } from "../notation";
 
 /**
  * One rendered token, and where it came from.
@@ -46,7 +47,8 @@ export function spans(
 export function typecodeCell(typecode: Typecode): HTMLElement {
   const cell = document.createElement("span");
   cell.className = `typecode typecode--${typecode === "|-" ? "stmt" : "wff"}`;
-  cell.textContent = typecode;
+  cell.textContent = glyph(typecode);
+  cell.dataset["token"] = typecode;
   return cell;
 }
 
@@ -65,7 +67,10 @@ export function tokenCell(run: Span[], variables: ReadonlySet<string>): HTMLElem
     ...run.map(({ token, from }) => {
       const span = document.createElement("span");
       span.className = "token";
-      span.textContent = token;
+      // The glyph is what is read; the ASCII token stays in the DOM, because it
+      // is what the model, the slot paths and the flash all address things by.
+      span.textContent = glyph(token);
+      span.dataset["token"] = token;
       if (variables.has(token)) {
         span.classList.add("token--var");
         span.dataset["var"] = token;

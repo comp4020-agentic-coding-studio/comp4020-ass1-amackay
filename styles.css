@@ -57,7 +57,13 @@
   --block-max-w: 560px;
 
   /* type */
-  --mono: "IBM Plex Mono", ui-monospace, sfmono-regular, menlo, monospace;
+
+  /* The math fonts are not decoration: set.mm writes variables with the
+     Mathematical Alphanumeric Symbols block (ph is U+1D711, not Greek phi), and
+     most monospace faces do not cover it. Without a named fallback the browser
+     picks one per glyph and the variables land in whatever it finds. */
+  --mono: "IBM Plex Mono", ui-monospace, sfmono-regular, menlo, "DejaVu Sans Mono",
+    "Cambria Math", "STIX Two Math", "Noto Sans Math", "DejaVu Math TeX Gyre", monospace;
   --sans: "IBM Plex Sans", system-ui, sans-serif;
   --token-size: 17px;
   --token-weight: 600;

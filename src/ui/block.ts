@@ -8,6 +8,7 @@ import {
   type Socket,
   type Token,
 } from "../logic";
+import { glyph } from "../notation";
 import { createOutline, observeOutline } from "./outline";
 import { spans, statementCells, typecodeCell } from "./tokens";
 import { slotPath, type SlotRef } from "./workspace";
@@ -62,7 +63,7 @@ function socketRow(card: Card, socket: Socket, variables: ReadonlySet<string>): 
   } else {
     const notch = document.createElement("span");
     notch.className = "notch";
-    notch.textContent = socket.var;
+    notch.textContent = glyph(socket.var);
     notch.dataset["slot"] = slot;
     element.append(notch);
   }

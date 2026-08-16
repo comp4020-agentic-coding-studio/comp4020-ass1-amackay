@@ -219,6 +219,23 @@ transcription of set.mm, tested against `reference/set.mm-propcalc.mm`.
 - Prototype palette: variable chips, `wn`, `wi`, `ax-1`, `ax-2`, `ax-3`,
   `ax-mp` (first template with a lock).
 
+## Notation
+
+`src/notation/althtmldef.json` — `{ token: glyph }`, every `althtmldef` in
+set.mm's `$( $t … $)` typesetting block, extracted by
+`scripts/extract-notation.py`. All ~1,800 of them, not only the propositional
+ones, so a different template set needs no second extraction.
+
+**Rendering only.** The model keeps set.mm's ASCII tokens: substitution, the
+lock's exact-equality check and the palette JSON are all unchanged, and nothing
+under `src/logic` imports this. Token spans carry `data-token` with the ASCII, so
+slot paths, identity colours and the rewrite flash still address tokens by what
+the database calls them. An unmapped token renders as itself.
+
+`--mono` names math-capable fallbacks because set.mm writes variables in the
+Mathematical Alphanumeric Symbols block (`ph` is U+1D711, not Greek φ), which
+most monospace faces do not cover.
+
 ## ⟨OPEN⟩ Design decisions
 
 - **Derived-list / palette growth** — completed chips currently just live on

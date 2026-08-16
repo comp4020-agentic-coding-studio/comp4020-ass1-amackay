@@ -44,7 +44,11 @@ describe("typecodeCell", () => {
   it("separates a claim from a piece of syntax", () => {
     expect(typecodeCell("|-").className).toContain("typecode--stmt");
     expect(typecodeCell("wff").className).toContain("typecode--wff");
-    expect(typecodeCell("|-").textContent).toBe("|-");
+  });
+
+  it("reads in set.mm's notation, and keeps the token it stands for", () => {
+    expect(typecodeCell("|-").textContent).toBe("⊢");
+    expect(typecodeCell("|-").dataset["token"]).toBe("|-");
   });
 });
 
@@ -52,6 +56,15 @@ describe("tokenCell", () => {
   it("gives every token its own element, so breaks fall only between them", () => {
     const cell = tokenCell(spans(["(", "ph", "->", "ps", ")"], from({})), VARIABLES);
     expect([...cell.children].map((c) => c.textContent)).toEqual([
+      "(", "𝜑", "→", "𝜓", ")",
+    ]);
+  });
+
+  it("keeps the token it renders addressable in ASCII", () => {
+    // The glyph is what is read; slot paths, the flash and the model all
+    // address tokens by the notation the database stores.
+    const cell = tokenCell(spans(["(", "ph", "->", "ps", ")"], from({})), VARIABLES);
+    expect([...cell.children].map((c) => (c as HTMLElement).dataset["token"])).toEqual([
       "(", "ph", "->", "ps", ")",
     ]);
   });
@@ -60,7 +73,7 @@ describe("tokenCell", () => {
     // An arrow split across a line break reads as two different symbols.
     const cell = tokenCell(spans(["->"], from({})), VARIABLES);
     expect(cell.children).toHaveLength(1);
-    expect(cell.children[0].textContent).toBe("->");
+    expect(cell.children[0].textContent).toBe("→");
   });
 
   it("colours a variable by identity wherever it appears", () => {
@@ -94,8 +107,8 @@ describe("tokenCell", () => {
 describe("statementCells", () => {
   it("puts the typecode in the cell and never in the run", () => {
     const [typecode, run] = statementCells(spans(AX1, from({})), VARIABLES);
-    expect(typecode.textContent).toBe("|-");
-    expect(run.textContent).not.toContain("|-");
+    expect(typecode.textContent).toBe("⊢");
+    expect(run.textContent).not.toContain("⊢");
     expect(run.children).toHaveLength(AX1.length - 1);
   });
 });

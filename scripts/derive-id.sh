@@ -34,7 +34,7 @@ legal_at() {
 }
 
 # Grab point of the collapsed bench card whose conclusion reads exactly TEXT.
-# Exact, because "wff(ph->ph)" is a substring of "wff(ph->(ph->ph))".
+# Exact, and in the rendered notation: "wff(𝜑→𝜑)" is a substring of "wff(𝜑→(𝜑→𝜑))".
 card_at() {
   j "(()=>{const b=[...document.querySelectorAll('[data-bench-cards] > .block')].find(e=>e.classList.contains('block--collapsed')&&e.textContent.replace(/[⌄⌃]/g,'')==='$1');if(!b)return '[0,0]';const r=b.getBoundingClientRect();return JSON.stringify([Math.round(r.x+8),Math.round(r.y+8)])})()"
 }
@@ -61,7 +61,7 @@ echo "   $(bench)"
 echo "== build E = ( ph -> ( ph -> ph ) ), consuming B"
 place 4 1000 300
 fill_from_palette 0
-fill_from_bench "wff(ph->ph)"
+fill_from_bench "wff(𝜑→𝜑)"
 echo "   $(bench)"
 
 echo "== build B again, for ax-mp"
@@ -78,12 +78,12 @@ echo "   $(bench)"
 
 echo "== place ax-mp and fill ph:=E, ps:=B, so its locks go live"
 place 5 1000 700
-fill_from_bench "wff(ph->(ph->ph))"
-fill_from_bench "wff(ph->ph)"
+fill_from_bench "wff(𝜑→(𝜑→𝜑))"
+fill_from_bench "wff(𝜑→𝜑)"
 echo "   $(bench)"
 
 echo "== seat step4 into ax-mp's first lock — the exact-match moment"
-read -r -a C <<< "$(card_at "|-(ph->(ph->ph))" | xy)"
+read -r -a C <<< "$(card_at "⊢(𝜑→(𝜑→𝜑))" | xy)"
 agent-browser mouse move "${C[0]}" "${C[1]}" >/dev/null 2>&1
 agent-browser mouse down left >/dev/null 2>&1
 agent-browser mouse move $(( C[0] + 40 )) $(( C[1] + 40 )) >/dev/null 2>&1
