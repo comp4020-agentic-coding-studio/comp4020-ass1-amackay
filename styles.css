@@ -177,6 +177,84 @@ body {
   overflow: auto;
 }
 
+/* One indirection, so a notch, a variable chip and a lock outline all read the
+   same variable's colour from one place. */
+[data-var="ph"] {
+  --var-line: var(--ph-line);
+  --var-fill: var(--ph-fill);
+  --var-ink: var(--ph-ink);
+}
+
+[data-var="ps"] {
+  --var-line: var(--ps-line);
+  --var-fill: var(--ps-fill);
+  --var-ink: var(--ps-ink);
+}
+
+[data-var="ch"] {
+  --var-line: var(--ch-line);
+  --var-fill: var(--ch-fill);
+  --var-ink: var(--ch-ink);
+}
+
+/* A typecode cell shares an edge with whatever it butts against: no margin, no
+   gap, and stretched to the full height of a run that wrapped. */
+.typecode {
+  display: flex;
+  flex: none;
+  align-items: center;
+  align-self: stretch;
+  justify-content: center;
+  width: var(--tc-w);
+  padding: 3px 0 4px;
+  font-family: var(--mono);
+  font-size: var(--tc-size);
+  font-weight: var(--tc-weight);
+}
+
+.typecode--wff {
+  background: var(--tc-wff-bg);
+  color: var(--tc-wff-ink);
+}
+
+.typecode--stmt {
+  background: var(--tc-stmt-bg);
+  color: var(--tc-stmt-ink);
+}
+
+/* Tokens are the flex items, so every inter-token gap is a break point and
+   nothing inside a token ever is. */
+.tokens {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--token-gap-y) var(--token-gap-x);
+  min-width: 0;
+  padding: var(--pad);
+  font-family: var(--mono);
+  font-size: var(--token-size);
+  font-weight: var(--token-weight);
+  line-height: var(--line-height);
+}
+
+.token {
+  padding: 1px 1px 2px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.token--sub {
+  padding: 1px 4px 2px;
+  background: var(--prov-bg);
+  transition: background-color var(--t-token) ease;
+}
+
+.token--var {
+  padding: 1px 6px 2px;
+  background: var(--var-fill, var(--prov-bg));
+  color: var(--var-ink, var(--ink));
+}
+
 /* The palette's 308px cap keeps it narrow beside a wide bench; once the bench
    wraps below it there is nothing to be narrow beside. The threshold is where
    the flex bases stop fitting: 240 + 14 + 440, plus the page's 36px padding.
