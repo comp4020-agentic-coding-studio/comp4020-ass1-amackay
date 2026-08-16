@@ -170,6 +170,8 @@ body {
     var(--panel-bg);
 }
 
+/* A free canvas: cards stay where they were put, and overlap freely. The bench
+   scrolls, which is the escape hatch for a card that grew past the visible area. */
 .bench-cards {
   position: relative;
   flex: 1;
@@ -184,6 +186,11 @@ body {
   display: grid;
   justify-items: start;
   max-width: var(--block-max-w);
+}
+
+/* On the bench a card sits where it was put, and overlaps whatever is there. */
+.bench-cards > .block {
+  position: absolute;
 }
 
 /* Each row carries the block background, so the union of the rows *is* the
@@ -229,6 +236,18 @@ body {
   flex-wrap: nowrap;
   min-width: 0;
   background: var(--seated-bg);
+}
+
+/* A seated chip leads with its own typecode cell, which is by definition the
+   same typecode the socket asked for — that match is the fit you are meant to
+   see. The edge says where the socket stops and its contents start, and carries
+   the variable's colour, which the notch was the only thing showing before. */
+.seated--fill {
+  border-left: var(--border-w) solid var(--var-line, var(--ink));
+}
+
+.seated--key {
+  border-left: var(--border-w) solid var(--tc-stmt-ink);
 }
 
 .picture {

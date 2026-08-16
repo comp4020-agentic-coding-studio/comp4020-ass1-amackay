@@ -1,6 +1,7 @@
 import { createCard, parsePalette, variableTemplate, type Palette, type Template } from "../logic";
 import prototypeJson from "../palettes/prototype.json?raw";
 import { renderCard } from "./block";
+import { scene } from "./scene";
 
 // Imported as text, not fetched. `public/` can only be fetched, and a fetch
 // makes page init async — which the spec suite cannot drive under jsdom, where
@@ -30,11 +31,23 @@ const entries = (): Template[] => [
 
 export function mount(root: ParentNode): void {
   const paletteBlocks = region(root, "data-palette-blocks");
+  const benchCards = region(root, "data-bench-cards");
 
   paletteBlocks.replaceChildren(
     ...entries().map(
       (template, i) =>
         renderCard(createCard(template, { id: `p${i}`, x: 0, y: 0, z: 0 }), variables).element,
     ),
+  );
+
+  // Cards sit where they were put, and stack in the order they were put there.
+  benchCards.replaceChildren(
+    ...scene(palette).map((card) => {
+      const { element } = renderCard(card, variables);
+      element.style.left = `${card.x}px`;
+      element.style.top = `${card.y}px`;
+      element.style.zIndex = String(card.z);
+      return element;
+    }),
   );
 }
