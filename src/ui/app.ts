@@ -1,7 +1,8 @@
-import { createCard, parsePalette, variableTemplate, type Palette, type Template } from "../logic";
+import { parsePalette, variableTemplate, type Card, type Palette, type Template } from "../logic";
 import prototypeJson from "../palettes/prototype.json?raw";
 import { renderCard } from "./block";
-import { scene } from "./scene";
+import { installDrag } from "./drag";
+import { slotPath, Workspace, type SlotRef } from "./workspace";
 
 // Imported as text, not fetched. `public/` can only be fetched, and a fetch
 // makes page init async — which the spec suite cannot drive under jsdom, where
@@ -12,22 +13,22 @@ export const palette: Palette = parsePalette(prototypeJson, "prototype.json");
 /** Every variable the palette declares, for the renderer's identity colours. */
 export const variables: ReadonlySet<string> = new Set(palette.variables.map((v) => v.var));
 
+/**
+ * Everything the palette offers, in one list: the variable chips first, then the
+ * templates. A variable chip is a slotless template, so both are empty cards and
+ * both go through the same renderer — there is no second kind of block.
+ */
+export const entries: Template[] = [
+  ...palette.variables.map(variableTemplate),
+  ...palette.templates,
+];
+
 /** Find a mount point, or say which one is missing. */
 function region(root: ParentNode, attribute: string): HTMLElement {
   const element = root.querySelector<HTMLElement>(`[${attribute}]`);
   if (!element) throw new Error(`the page has no [${attribute}] to render into`);
   return element;
 }
-
-/**
- * Everything the palette offers, in one list: the variable chips first, then the
- * templates. A variable chip is a slotless template, so both are empty cards and
- * both go through the same renderer — there is no second kind of block.
- */
-const entries = (): Template[] => [
-  ...palette.variables.map(variableTemplate),
-  ...palette.templates,
-];
 
 /** The widest a card may be: the design's cap, or the bench, whichever is less. */
 const DESIGN_CAP = 560;
@@ -40,40 +41,76 @@ const BENCH_GUTTER = 26;
  * window. Measuring the thing blocks actually sit in is the only cap that holds
  * at every width.
  */
-function capBlocks(bench: HTMLElement): () => void {
+function capBlocks(bench: HTMLElement): void {
   const apply = (): void => {
     const cap = Math.min(DESIGN_CAP, bench.clientWidth - BENCH_GUTTER);
     bench.style.setProperty("--block-max-w", `${Math.max(cap, 0)}px`);
   };
 
   apply();
-  if (typeof ResizeObserver === "undefined") return () => {};
-  const observer = new ResizeObserver(apply);
-  observer.observe(bench);
-  return () => observer.disconnect();
+  if (typeof ResizeObserver === "undefined") return;
+  new ResizeObserver(apply).observe(bench);
 }
 
 export function mount(root: ParentNode): void {
   const paletteBlocks = region(root, "data-palette-blocks");
   const benchCards = region(root, "data-bench-cards");
-
-  paletteBlocks.replaceChildren(
-    ...entries().map(
-      (template, i) =>
-        renderCard(createCard(template, { id: `p${i}`, x: 0, y: 0, z: 0 }), variables).element,
-    ),
-  );
+  const workspace = new Workspace();
 
   capBlocks(benchCards);
 
-  // Cards sit where they were put, and stack in the order they were put there.
-  benchCards.replaceChildren(
-    ...scene(palette).map((card) => {
-      const { element } = renderCard(card, variables);
-      element.style.left = `${card.x}px`;
-      element.style.top = `${card.y}px`;
-      element.style.zIndex = String(card.z);
+  // The palette never changes, so it is rendered once. Each entry is an empty
+  // card of its template, marked with its index so a grab can name it.
+  paletteBlocks.replaceChildren(
+    ...entries.map((template, index) => {
+      const { element } = renderCard(workspace.mint(template, 0, 0), variables);
+      element.dataset["paletteIndex"] = String(index);
+      element.dataset["coreInteraction"] = "";
       return element;
     }),
   );
+
+  /** The card the keyboard should come back to after a rebuild. */
+  let focusId: string | null = null;
+
+  const render = (): void => {
+    const legal = new Set(workspace.legalSlots().map(slotPath));
+
+    benchCards.replaceChildren(
+      ...workspace.ordered().map((card) => {
+        const { element } = renderCard(card, variables);
+        element.style.left = `${card.x}px`;
+        element.style.top = `${card.y}px`;
+        element.style.zIndex = String(card.z);
+
+        // Every legal target lights up together, so the question "where can this
+        // go" is answered by looking rather than by trying.
+        for (const slot of element.querySelectorAll<HTMLElement>("[data-slot]")) {
+          if (legal.has(slot.dataset["slot"] ?? "")) slot.classList.add("is-legal");
+        }
+        return element;
+      }),
+    );
+
+    document.body.classList.toggle("is-carrying", workspace.carry !== null);
+    if (focusId) benchCards.querySelector<HTMLElement>(`[data-card="${focusId}"]`)?.focus();
+  };
+
+  const onSeat = (ref: SlotRef, completed: boolean): void => {
+    focusId = ref.cardId;
+    render();
+    if (completed) workspace.collapse(ref.cardId);
+    render();
+  };
+
+  installDrag({
+    workspace,
+    entries,
+    benchCards,
+    render,
+    renderGhost: (card: Card) => renderCard(card, variables).element,
+    onSeat,
+  });
+
+  render();
 }

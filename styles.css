@@ -289,6 +289,37 @@ body {
   min-width: 0;
 }
 
+/* The lifted piece. Unrotated, at bench scale and translucent, because the
+   whole job while carrying is comparing this against the slot it is over. */
+.ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 80;
+  opacity: 0.65;
+  filter: drop-shadow(0 4px 10px rgb(20 26 40 / 22%));
+  pointer-events: none;
+}
+
+/* While something is carried the whole bench reads as a live drop target. */
+.is-carrying .bench {
+  border-color: var(--bench-border-active);
+}
+
+/* Every slot the carried chip could legally fill, lit at once. */
+.notch.is-legal {
+  border-color: var(--hot-line);
+  background: var(--hot-fill);
+  color: var(--hot-ink);
+  box-shadow: 0 0 0 3px var(--hot-ring);
+  cursor: copy;
+}
+
+.picture.is-legal {
+  box-shadow: 0 0 0 3px var(--hot-ring);
+  cursor: copy;
+}
+
 /* One measured path per block, over its rows — the rows are opaque, and a
    stroke drawn under them is a stroke nobody sees. Drawing on top is also what
    a border does, so a typecode cell's colour running to the edge is correct. */
@@ -314,6 +345,12 @@ body {
 .outline--hot path {
   stroke: var(--hot-line);
   stroke-dasharray: 5 4;
+}
+
+/* A lock picture that is a legal target: the same hot dashed outline, which is
+   the third use the one BlockOutline component was built for. */
+.picture.is-legal .outline--picture path {
+  stroke: var(--hot-line);
 }
 
 /* One indirection, so a notch, a variable chip and a lock outline all read the
