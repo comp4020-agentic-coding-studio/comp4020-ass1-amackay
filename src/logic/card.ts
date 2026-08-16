@@ -48,8 +48,14 @@ export function instantiatedConclusion(card: Card): Expression {
   return substitute(card.template.conclusion, under(card));
 }
 
-const allSocketsFilled = (card: Card): boolean =>
-  card.template.sockets.every((s) => card.fills[s.var] !== undefined);
+/**
+ * Whether every socket is filled. Exported because it is also the gate the
+ * render draws: a lock picture is inert until this is true, and that has to be
+ * the same question `canSeatLock` asks rather than a second opinion about it.
+ */
+export function socketsFilled(card: Card): boolean {
+  return card.template.sockets.every((s) => card.fills[s.var] !== undefined);
+}
 
 /** A socket takes a chip whose typecode matches. That is the whole check. */
 export function canSeatSocket(card: Card, varName: string, chip: Chip): boolean {
@@ -92,7 +98,7 @@ export function seatSocket(card: Card, varName: string, chip: Chip): Card {
 export function canSeatLock(card: Card, index: number, chip: Chip): boolean {
   const lock = card.template.locks[index];
   if (lock === undefined || card.keys[index] !== null) return false;
-  if (!allSocketsFilled(card)) return false;
+  if (!socketsFilled(card)) return false;
   return same(conclusionTokens(chip), substitute(lock, under(card)));
 }
 
@@ -109,7 +115,7 @@ export function seatLock(card: Card, index: number, chip: Chip): Card {
 }
 
 export function isComplete(card: Card): boolean {
-  return allSocketsFilled(card) && card.keys.every((key) => key !== null);
+  return socketsFilled(card) && card.keys.every((key) => key !== null);
 }
 
 /**

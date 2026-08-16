@@ -177,29 +177,95 @@ body {
   overflow: auto;
 }
 
-/* One measured path per block, behind its rows. Filled as well as stroked, so
-   the background follows the staircase instead of a rectangle poking out of it. */
+/* A block is a stack of shrink-to-fit rows, so its silhouette is a staircase.
+   Rows touch: any gap between them would break the outline into pieces. */
+.block {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  max-width: var(--block-max-w);
+}
+
+/* Each row carries the block background, so the union of the rows *is* the
+   staircase and the outline needs no fill to match it. */
+.row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: nowrap;
+  width: max-content;
+  max-width: 100%;
+  background: var(--block-bg);
+}
+
+/* Inert while any socket is unfilled: the picture still holds variables, so
+   there is nothing definite to match against yet. */
+.row--inert {
+  opacity: 0.66;
+}
+
+.notch {
+  display: flex;
+  flex: none;
+  align-items: center;
+  align-self: stretch;
+  justify-content: center;
+  min-width: 3.4em;
+  padding: 4px 11px 5px;
+  border: var(--border-w) dashed var(--var-line, var(--panel-border));
+  background: var(--var-fill, transparent);
+  color: var(--var-ink, var(--ink));
+  font-family: var(--mono);
+  font-size: var(--slot-size);
+  font-weight: var(--slot-weight);
+  transition:
+    border-color var(--t-slot) ease,
+    background-color var(--t-slot-bg) ease;
+}
+
+/* A chip in a slot reads differently from a card loose on the bench. */
+.seated {
+  display: flex;
+  flex-wrap: nowrap;
+  min-width: 0;
+  background: var(--seated-bg);
+}
+
+.picture {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.picture-row {
+  display: flex;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+/* One measured path per block, over its rows — the rows are opaque, and a
+   stroke drawn under them is a stroke nobody sees. Drawing on top is also what
+   a border does, so a typecode cell's colour running to the edge is correct. */
 .outline {
   position: absolute;
   inset: 0;
+  z-index: 2;
   overflow: visible;
   pointer-events: none;
 }
 
 .outline path {
-  fill: var(--block-bg);
+  fill: none;
   stroke: var(--ink);
   stroke-width: var(--border-w);
 }
 
 .outline--picture path {
-  fill: none;
-  stroke: var(--var-line, var(--panel-border));
+  stroke: var(--var-line, var(--meta));
   stroke-dasharray: 5 4;
 }
 
 .outline--hot path {
-  fill: var(--hot-fill);
   stroke: var(--hot-line);
   stroke-dasharray: 5 4;
 }

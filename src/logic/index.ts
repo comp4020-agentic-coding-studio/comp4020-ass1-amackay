@@ -36,6 +36,7 @@ export {
   isComplete,
   seatLock,
   seatSocket,
+  socketsFilled,
   thaw,
 } from "./card";
 
