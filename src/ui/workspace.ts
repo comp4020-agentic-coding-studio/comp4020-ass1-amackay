@@ -334,6 +334,31 @@ export class Workspace {
     const card = this.find(id);
     if (card) this.#replace({ ...card, z: (this.#nextZ += 1) });
   }
+
+  /**
+   * Pull every card back inside a bench that just changed size, using each
+   * card's measured box. Returns whether anything actually moved, so a resize
+   * that changed nothing does not cause a rebuild.
+   *
+   * A card also *grows* when it is seated into or when the bench narrows and its
+   * run rewraps, so this is the same path that catches a card escaping downwards
+   * after a fill — not only a window drag.
+   */
+  reclamp(
+    bench: { w: number; h: number },
+    sizeOf: (id: string) => { w: number; h: number } | null,
+  ): boolean {
+    let moved = false;
+    this.cards = this.cards.map((card) => {
+      const size = sizeOf(card.id);
+      if (!size) return card;
+      const at = clamp(card.x, card.y, size, bench);
+      if (at.x === card.x && at.y === card.y) return card;
+      moved = true;
+      return { ...card, ...at };
+    });
+    return moved;
+  }
 }
 
 export const EDGE = 8;

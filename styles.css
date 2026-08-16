@@ -215,9 +215,17 @@ body {
   outline-offset: 3px;
 }
 
-/* On the bench a card sits where it was put, and overlaps whatever is there. */
+/* On the bench a card sits where it was put, and overlaps whatever is there.
+
+   `width: max-content` is load-bearing, not tidying: an absolutely positioned
+   box otherwise gets only `container − left` to lay out in, so a card sitting
+   near the right edge shrinks instead of keeping its shape — and the re-clamp,
+   which measures the card to work out where it should go, would then be
+   measuring a box the overflow had already crushed. The cap comes from
+   max-width, which is the bench's width and not the space left beside the card. */
 .bench-cards > .block {
   position: absolute;
+  width: max-content;
 }
 
 /* Each row carries the block background, so the union of the rows *is* the

@@ -46,10 +46,11 @@ const FLASH_DECAY = 450;
  * window. Measuring the thing blocks actually sit in is the only cap that holds
  * at every width.
  */
-function capBlocks(bench: HTMLElement): void {
+function capBlocks(bench: HTMLElement, onResize: () => void): void {
   const apply = (): void => {
     const cap = Math.min(DESIGN_CAP, bench.clientWidth - BENCH_GUTTER);
     bench.style.setProperty("--block-max-w", `${Math.max(cap, 0)}px`);
+    onResize();
   };
 
   apply();
@@ -61,8 +62,6 @@ export function mount(root: ParentNode): void {
   const paletteBlocks = region(root, "data-palette-blocks");
   const benchCards = region(root, "data-bench-cards");
   const workspace = new Workspace();
-
-  capBlocks(benchCards);
 
   // The palette never changes, so it is rendered once. Each entry is an empty
   // card of its template, marked with its index so a grab can name it.
@@ -147,6 +146,8 @@ export function mount(root: ParentNode): void {
           render();
         }, FLASH_DECAY);
       }
+      // A seat makes a card taller. Re-measure once the new DOM has laid out.
+      reclamp();
     }, FLASH_HOLD);
   };
 
@@ -168,5 +169,23 @@ export function mount(root: ParentNode): void {
 
   installKeyboard({ workspace, entries, benchCards, render, onSeat, ui });
 
+  /**
+   * A card grows when a run rewraps, so a narrower bench can leave one hanging
+   * out of it. Measure what is actually on screen and pull them back — including
+   * while a piece is in the air, which is the case that would otherwise strand a
+   * card behind the ghost.
+   */
+  const reclamp = (): void => {
+    const moved = workspace.reclamp(
+      { w: benchCards.clientWidth, h: benchCards.clientHeight },
+      (id) => {
+        const element = benchCards.querySelector<HTMLElement>(`[data-card="${id}"]`);
+        return element ? { w: element.offsetWidth, h: element.offsetHeight } : null;
+      },
+    );
+    if (moved) render();
+  };
+
+  capBlocks(benchCards, reclamp);
   render();
 }

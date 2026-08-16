@@ -365,6 +365,34 @@ describe("ejecting a key", () => {
   });
 });
 
+describe("reclamp", () => {
+  const size = () => ({ w: 200, h: 100 });
+
+  it("pulls cards back inside a bench that shrank", () => {
+    const w = new Workspace();
+    const card = w.add(w.mint(wi, 0, 0), 500, 400);
+    expect(w.reclamp({ w: 400, h: 300 }, size)).toBe(true);
+    expect(w.find(card.id)).toMatchObject({ x: 192, y: 192 });
+  });
+
+  it("reports nothing moved when nothing needed to", () => {
+    // A resize that changes nothing must not cause a rebuild — a rebuild
+    // mid-carry would throw away focus and the target cursor for no reason.
+    const w = new Workspace();
+    w.add(w.mint(wi, 0, 0), 20, 40);
+    expect(w.reclamp({ w: 800, h: 600 }, size)).toBe(false);
+  });
+
+  it("leaves a card alone when it cannot be measured", () => {
+    // Mid-carry the lifted card is not in the DOM, so there is nothing to
+    // measure and nothing to move.
+    const w = new Workspace();
+    const card = w.add(w.mint(wi, 0, 0), 500, 400);
+    expect(w.reclamp({ w: 400, h: 300 }, () => null)).toBe(false);
+    expect(w.find(card.id)).toMatchObject({ x: 500, y: 400 });
+  });
+});
+
 describe("collapse", () => {
   it("expands and re-collapses a complete card", () => {
     const { w, id } = benchWith(wi);
