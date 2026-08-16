@@ -73,7 +73,7 @@ export interface Card {
   z: number;
 }
 
-/** The contents of `public/palettes/<name>.json`, once validated. */
+/** The contents of `src/palettes/<name>.json`, once validated. */
 export interface Palette {
   variables: Variable[];
   templates: Template[];

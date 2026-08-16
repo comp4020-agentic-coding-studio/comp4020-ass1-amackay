@@ -11,8 +11,7 @@ disagree, **this file wins** — see "Superseded from HANDOFF.md" below.
 The core model is now **recursive** (a tree of complete derivations), replacing
 the flat `fills: Map<string, Expr>` model that M1 implemented. The interaction
 semantics are settled and richer: collapse/uncollapse, eject, pop, a delete
-target, and a keyboard adapter. **M1's logic layer must be reworked before any
-M2 work** — see Build order. Vocabulary is also new (below); rename
+target, and a keyboard adapter. Vocabulary is also new (below); rename
 consistently, including in the M1 code.
 
 ## Terminology (use everywhere: code, tests, commits)
@@ -203,8 +202,10 @@ state (`collapsed`, `x/y/z` live on Card but only the UI reads them).
 
 ## Palette JSON
 
-`public/palettes/<name>.json` — `{ variables, templates }`, shape-checked at
-load by a plain TS assert (no zod). Field names use the new vocabulary
+`src/palettes/<name>.json` — `{ variables, templates }`, imported as raw text
+(Vite `?raw`) rather than fetched from `public/`, so page init stays synchronous
+and the validator still runs on the exact shipped bytes. Shape-checked at load
+by a plain TS assert (no zod). Field names use the new vocabulary
 (`sockets`, `locks`, `conclusion`); token content remains a byte-faithful
 transcription of set.mm, tested against `reference/set.mm-propcalc.mm`.
 

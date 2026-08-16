@@ -142,11 +142,19 @@ gets no compile-time sensor at all. `src` was added for exactly that reason ---
 the logic layer lands before any page reads it. `scripts/` is still outside the
 list; that is a gap, not a decision.
 
-**Nothing in `public/` may be an HTML file.** Vite copies `public/` into `dist/`
-verbatim, *and* `vite.config.ts`'s `htmlEntries()` walks the whole repo for
-`.html` to use as build entries --- so an HTML file in there gets picked up twice
-and lands in `dist/` from both paths. Static data (the palette JSON) is what
-`public/` is for here.
+**`public/` is fetch-only, and that decides where static data lives.** Vite
+copies `public/` into `dist/` verbatim but refuses to let JavaScript import from
+it, so the only way to read a file in there is `fetch` --- which makes page init
+async. That is what pushed the palette JSON into `src/palettes/`, imported as
+raw text with Vite's `?raw`: init stays synchronous, so `spec/assignment-1.test.ts`
+can drive the page under jsdom, where a relative `fetch` resolves against
+nothing. Anything the page needs before its first paint belongs in `src/`;
+`public/` is for files only a browser ever asks for by URL.
+
+Related, and still true whatever `public/` holds: **nothing in it may be an HTML
+file.** `vite.config.ts`'s `htmlEntries()` walks the whole repo for `.html` to
+use as build entries, so an HTML file in `public/` gets picked up twice and lands
+in `dist/` from both paths.
 
 ## Your process is part of the mark
 
