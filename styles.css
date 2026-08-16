@@ -306,6 +306,36 @@ body {
   border-color: var(--bench-border-active);
 }
 
+/* Pinned in a corner and shown only while something is in the air — there is
+   nothing to discard the rest of the time. Releasing clean off the bench
+   discards too; this is the target you can aim at. */
+.delete-target {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 70;
+  display: none;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  border: var(--border-w) dashed var(--meta);
+  background: var(--panel-bg);
+  color: var(--meta);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.is-carrying .delete-target {
+  display: flex;
+}
+
+.delete-target__mark {
+  font-size: 18px;
+  line-height: 1;
+}
+
 /* Every slot the carried chip could legally fill, lit at once. */
 .notch.is-legal {
   border-color: var(--hot-line);
