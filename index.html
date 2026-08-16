@@ -3,21 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>COMP4020 prototype</title>
+    <title>Proof blocks</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <header>
+    <header class="page-head">
+      <h1>Proof blocks</h1>
       <nav aria-label="Primary">
-        <a href="./">Home</a>
+        <a href="./" aria-current="page">Sandbox</a>
       </nav>
     </header>
-    <main>
-      <h1>COMP4020 prototype</h1>
-      <p data-testid="intro">
-        Replace this with your prototype. This week's brief is on the course website;
-        <code>spec/README.md</code> explains how the checks in this repo relate to it.
-      </p>
+    <main class="workspace">
+      <section class="region palette" aria-label="Palette" data-palette>
+        <p class="region-label">Palette</p>
+        <div class="palette-blocks" data-palette-blocks></div>
+      </section>
+      <section class="region bench" aria-label="Bench" data-bench>
+        <p class="region-label">Bench</p>
+        <div class="bench-cards" data-bench-cards></div>
+      </section>
     </main>
     <script type="module" src="./main.ts"></script>
   </body>
