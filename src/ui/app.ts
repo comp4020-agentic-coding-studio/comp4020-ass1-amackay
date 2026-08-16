@@ -2,6 +2,7 @@ import { parsePalette, variableTemplate, type Card, type Palette, type Template 
 import prototypeJson from "../palettes/prototype.json?raw";
 import { renderCard } from "./block";
 import { installDrag } from "./drag";
+import { installKeyboard } from "./keyboard";
 import { slotPath, Workspace, type SlotRef } from "./workspace";
 
 // Imported as text, not fetched. `public/` can only be fetched, and a fetch
@@ -74,13 +75,17 @@ export function mount(root: ParentNode): void {
     }),
   );
 
-  /** The card the keyboard should come back to after a rebuild. */
-  let focusId: string | null = null;
+  /**
+   * Render state the two adapters steer: which card the keyboard comes back to
+   * after a rebuild, and which slot its target cursor is on.
+   */
+  const ui: { focusId: string | null; target: SlotRef | null } = { focusId: null, target: null };
   /** The seat whose spans are currently lit. */
   let flash: SlotRef | null = null;
 
   const render = (): void => {
     const legal = new Set(workspace.legalSlots().map(slotPath));
+    const targeted = ui.target ? slotPath(ui.target) : null;
 
     benchCards.replaceChildren(
       ...workspace.ordered().map((card) => {
@@ -95,14 +100,29 @@ export function mount(root: ParentNode): void {
         // Every legal target lights up together, so the question "where can this
         // go" is answered by looking rather than by trying.
         for (const slot of element.querySelectorAll<HTMLElement>("[data-slot]")) {
-          if (legal.has(slot.dataset["slot"] ?? "")) slot.classList.add("is-legal");
+          const path = slot.dataset["slot"] ?? "";
+          if (legal.has(path)) slot.classList.add("is-legal");
+          if (path === targeted) slot.classList.add("is-target");
+        }
+
+        // A seated chip is reachable too, because the keyboard has to be able
+        // to pull one out as well as put one in.
+        for (const seat of element.querySelectorAll<HTMLElement>("[data-seated]")) {
+          seat.tabIndex = 0;
         }
         return element;
       }),
     );
 
     document.body.classList.toggle("is-carrying", workspace.carry !== null);
-    if (focusId) benchCards.querySelector<HTMLElement>(`[data-card="${focusId}"]`)?.focus();
+
+    // Focus survives the rebuild: the keyboard path depends on landing back on
+    // the card it was working with.
+    const targetSlot = targeted && benchCards.querySelector<HTMLElement>(`[data-slot="${targeted}"]`);
+    if (targetSlot) targetSlot.scrollIntoView({ block: "nearest" });
+    else if (ui.focusId) {
+      benchCards.querySelector<HTMLElement>(`[data-card="${ui.focusId}"]`)?.focus();
+    }
   };
 
   /**
@@ -111,7 +131,7 @@ export function mount(root: ParentNode): void {
    * *what changed* before the card folds up and hides it.
    */
   const onSeat = (ref: SlotRef, completed: boolean): void => {
-    focusId = ref.cardId;
+    ui.focusId = ref.cardId;
     flash = ref;
     render();
 
@@ -145,6 +165,8 @@ export function mount(root: ParentNode): void {
     renderGhost: (card: Card) => renderCard(card, variables).element,
     onSeat,
   });
+
+  installKeyboard({ workspace, entries, benchCards, render, onSeat, ui });
 
   render();
 }

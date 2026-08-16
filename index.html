@@ -16,11 +16,21 @@
     <main class="workspace">
       <section class="region palette" aria-label="Palette" data-palette>
         <p class="region-label">Palette</p>
-        <div class="palette-blocks" data-palette-blocks></div>
+        <!-- The blocks inside are generated and each carries data-core-interaction
+             too; it is on the container as well so the built page names the
+             interaction without having run any script. -->
+        <div
+          class="palette-blocks"
+          data-palette-blocks
+          data-core-interaction
+          tabindex="0"
+          role="group"
+          aria-label="Blocks to drag onto the bench"
+        ></div>
       </section>
       <section class="region bench" aria-label="Bench" data-bench>
         <p class="region-label">Bench</p>
-        <div class="bench-cards" data-bench-cards></div>
+        <div class="bench-cards" data-bench-cards data-core-output></div>
       </section>
     </main>
     <div class="delete-target" data-delete aria-hidden="true">

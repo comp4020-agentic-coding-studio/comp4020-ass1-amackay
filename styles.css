@@ -350,6 +350,12 @@ body {
   cursor: copy;
 }
 
+/* Where the keyboard's target cursor currently sits, among the legal slots. */
+.is-target {
+  outline: var(--border-w) solid var(--hot-line);
+  outline-offset: 3px;
+}
+
 /* One measured path per block, over its rows — the rows are opaque, and a
    stroke drawn under them is a stroke nobody sees. Drawing on top is also what
    a border does, so a typecode cell's colour running to the edge is correct. */
