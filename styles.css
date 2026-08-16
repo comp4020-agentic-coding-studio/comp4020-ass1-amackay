@@ -66,26 +66,25 @@
   /* a token that arrived by substitution rather than from the template */
   --prov-bg: rgb(17 17 17 / 5.5%);
 
-  /* a chip seated in a slot, against a card loose on the bench */
-  --seated-bg: #eef2f8;
-
-  /* The three surfaces of a block, and the rule they encode: what a chip covers
-     opaquely it has to match, and the recess it also covers is free.
-     --block-bg  the rows above: what the block needs, and a socket's typecode
-     --slot-bg   the recess in an empty socket, where anything of that type goes
-     --conclusion-bg  the bottom row: what the block gives
-     Warm for the conclusion rather than a fourth near-identical grey, so the
-     band reads as a different kind of thing and not as a deeper hole. */
-  --slot-bg: #dce1eb;
+  /* Two surfaces, and the shape says the rest.
+     --block-bg       what the block needs: the slot rows and the padding around
+                      them, which is also every strip between two rows
+     --conclusion-bg  what it gives: the bottom row — and any chip, because a chip
+                      is a collapsed derivation and wears the same surface whether
+                      it is loose on the bench or seated in a slot
+     Warm against the neutral rows, so the two read as different kinds of thing
+     rather than as two depths of the same one. */
   --conclusion-bg: #f6f3ee;
 
   /* geometry */
   --border-w: 2px;
   --radius: 0;
 
-  /* The breathing room around a slot: above every row, and to the left and right
-     of every row but the conclusion. */
-  --slot-pad: 7px;
+  /* The breathing room around a slot: on all four sides of every row but the
+     conclusion, so a boundary between two rows carries two strips and a seated
+     chip's own edges never land on one. Halved from 7px because of that
+     doubling. */
+  --slot-pad: 5px;
 
   /* The tray's footprint, and the inset it costs the placement area. The dot
      grid runs full bleed underneath it; only these say where cards may land.
@@ -249,7 +248,7 @@ body {
 .palette-blocks {
   --pad: 7px;
   --tc-w: 36px;
-  --slot-pad: 5px;
+  --slot-pad: 4px;
   --token-size: 14px;
   --tc-size: 13px;
   --slot-size: 13px;
@@ -351,10 +350,11 @@ body {
 /* Each row carries the block background, so the union of the rows *is* the
    staircase and the outline needs no fill to match it.
 
-   The padding is the slot's breathing room: above every row, and both sides of
-   every row that holds a slot. No row has padding below it, so the gap between
-   two rows is one row's top padding and the conclusion sits flush with the
-   block's bottom edge. */
+   The padding is the slot's breathing room, on all four sides. Two adjacent rows
+   therefore put two strips between them — one the width of the row above, one the
+   width of the row below — and that is the point rather than an accident: a
+   seated chip's own top and bottom edges then never coincide with a boundary
+   between its host's rows, which would read as one line through two blocks. */
 .row {
   position: relative;
   z-index: 1;
@@ -362,15 +362,17 @@ body {
   flex-wrap: nowrap;
   width: max-content;
   max-width: 100%;
-  padding: var(--slot-pad) var(--slot-pad) 0;
+  padding: var(--slot-pad);
   background: var(--block-bg);
 }
 
-/* What the block gives, against what it needs. Flush left and flush with the
-   block's bottom edge — it is the block's own face rather than something set
-   into it, so it takes no indent. */
+/* What the block gives, against what it needs. No padding at all: flush left,
+   flush right, flush with the block's bottom edge, and the strip above it belongs
+   to the last slot row — so that strip is that row's width and its colour, not
+   this one's. The conclusion is the block's own face rather than something set
+   into it. */
 .row--conclusion {
-  padding: var(--slot-pad) 0 0;
+  padding: 0;
   background: var(--conclusion-bg);
 }
 
@@ -380,53 +382,42 @@ body {
   opacity: 0.66;
 }
 
-/* Exactly where a seated chip lands, empty or full: the same element in both
-   states, so the promise is structural rather than tuned. It draws its dashes
-   with the block outline component, which is absolutely positioned and costs no
-   layout — a dashed border here would make the empty box and the filled one
-   different sizes. */
+/* What a slot holds, empty or full. For a socket that is the typecode alone, so
+   the block's edge lands just past it. */
 .slot {
   position: relative;
   display: inline-flex;
   min-width: 0;
 }
 
-/* The recess: the part of a socket that is genuinely open, so nothing about a
-   chip has to match it. The variable floats on top as the chip it is everywhere
-   else, saying which one this socket is without claiming to be a requirement. */
+/* The variable's name, hanging past the block's edge.
+   Absolute is what makes the overhang work at all: out of flow, it adds nothing
+   to the row's width, so the silhouette stops at the typecode while this still
+   draws beyond it. `left: 100%` is the slot's right edge — the typecode's — and
+   the margin carries it out to where the block ends. */
 .notch {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
   display: flex;
-  flex: none;
   align-items: center;
-  align-self: stretch;
-  justify-content: center;
-  min-width: 3.4em;
-  padding: 4px 7px 5px;
-  background: var(--slot-bg);
+  margin-left: var(--slot-pad);
   font-family: var(--math);
   font-size: var(--slot-size);
   font-weight: var(--slot-weight);
-  transition: background-color var(--t-slot-bg) ease;
 }
 
-/* A chip in a slot reads differently from a card loose on the bench. */
+
+/* A chip reads the same seated as it does loose, because it is the same thing
+   either way: a collapsed derivation, wearing the surface every conclusion wears.
+   What says it is seated is where it is — inset in a row, with the block's padding
+   around it — and not a colour it only has while it is there. */
 .seated {
   display: flex;
   flex-wrap: nowrap;
   min-width: 0;
-  background: var(--seated-bg);
-}
-
-/* A seated chip fills its slot exactly, so its own typecode cell comes to rest
-   over the one the socket was asking for — by definition the same typecode, and
-   that coincidence is the fit you are meant to see. The edge is the slot's left
-   edge, still carrying the variable's colour now that the dashes are gone. */
-.seated--fill {
-  border-left: var(--border-w) solid var(--var-line, var(--ink));
-}
-
-.seated--key {
-  border-left: var(--border-w) solid var(--tc-stmt-ink);
+  background: var(--conclusion-bg);
 }
 
 .picture-row {
@@ -485,20 +476,20 @@ body {
 }
 
 /* Every slot the carried chip could legally fill, lit at once. The row is the
-   drop target, so the row is what lights up — and the ring lands on the slot
-   box inside it, which is the part the chip will actually occupy. */
+   drop target, so the row is what carries the class — and the ring lands on the
+   slot box, which is what the chip has to match: a socket's typecode, a lock's
+   whole statement. The overhang comes up to full strength alongside it. */
 .row.is-legal {
   cursor: copy;
 }
 
 .row.is-legal .slot {
+  background: var(--hot-fill);
   box-shadow: 0 0 0 3px var(--hot-ring);
+  color: var(--hot-ink);
+  outline: var(--border-w) solid var(--hot-line);
 }
 
-.row.is-legal .notch {
-  background: var(--hot-fill);
-  color: var(--hot-ink);
-}
 
 /* Where the keyboard's target cursor currently sits, among the legal slots. */
 .is-target {
@@ -506,13 +497,20 @@ body {
   outline-offset: 3px;
 }
 
-/* One measured path per block, over its rows — the rows are opaque, and a
-   stroke drawn under them is a stroke nobody sees. The same component, nested
-   inside a slot, draws that slot's dashes over its own contents. */
+/* One measured path per block, over its rows — the rows are opaque, and a stroke
+   drawn under them is a stroke nobody sees. The card perimeter is its only use.
+
+   The explicit 100% is not redundant with `inset: 0`. An svg is a replaced
+   element, so `width: auto` resolves to its intrinsic 300×150 and `right`/`bottom`
+   are then over-constrained and dropped — leaving every card narrower than 300px
+   with an invisible box sticking out of it, enough to put the bench into
+   horizontal scroll when a card sits near the right edge. */
 .outline {
   position: absolute;
   inset: 0;
   z-index: 2;
+  width: 100%;
+  height: 100%;
   overflow: visible;
   pointer-events: none;
 }
@@ -521,22 +519,6 @@ body {
   fill: none;
   stroke: var(--ink);
   stroke-width: var(--border-w);
-}
-
-.outline--picture path {
-  stroke: var(--var-line, var(--meta));
-  stroke-dasharray: 5 4;
-}
-
-.outline--hot path {
-  stroke: var(--hot-line);
-  stroke-dasharray: 5 4;
-}
-
-/* A slot that is a legal target: the same dashes, hot — which is the third use
-   the one BlockOutline component was built for. */
-.row.is-legal .outline--picture path {
-  stroke: var(--hot-line);
 }
 
 /* One indirection, so a notch, a variable chip and a lock outline all read the
@@ -629,6 +611,19 @@ body {
   font-style: italic;
 }
 
+/* A socket's overhanging placeholder is the same chip, faded. Fading it here
+   rather than on the notch keeps the tint at exactly the colour this variable's
+   tokens will carry once it is substituted, which is the whole reason it is that
+   colour; reading as a ghost is left to the ink. (Below `.token--var` because
+   stylelint wants the plain selector first, and it is a rule about the token.) */
+.notch .token--var {
+  opacity: 0.62;
+}
+
+.row.is-legal .notch .token--var {
+  opacity: 1;
+}
+
 .is-flash {
   background: var(--flash-bg);
 }
@@ -708,7 +703,7 @@ body {
   :root {
     --tc-w: 36px;
     --pad: 7px;
-    --slot-pad: 5px;
+    --slot-pad: 4px;
     --token-size: 16px;
     --tc-size: 15px;
     --slot-size: 15px;

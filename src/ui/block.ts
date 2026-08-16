@@ -41,7 +41,7 @@ function chipRow(chip: Chip, variables: ReadonlySet<string>, modifier: string): 
   return seated;
 }
 
-/** The dashed box a chip lands in, kept whether the slot is empty or full. */
+/** What a slot holds, empty or full. */
 function slotBox(): HTMLElement {
   const element = document.createElement("span");
   element.className = "slot";
@@ -49,19 +49,20 @@ function slotBox(): HTMLElement {
 }
 
 /**
- * A socket row: a dashed box holding the typecode the row expects and a
- * placeholder for the expression that will satisfy it.
+ * A socket row: the typecode the row expects, and a placeholder for whatever
+ * will satisfy it.
  *
- * The dashed box spans **both**, because it marks where a seated chip lands and
- * a chip leads with its own typecode cell. So the chip's typecode comes to rest
- * exactly over the one the socket was asking for — the fit is the thing you see,
- * and there is never a moment with two typecodes side by side.
+ * **The block stops after the typecode.** That is the whole statement the shape
+ * makes: a socket will take any expression of its type, so the only part of it
+ * the block can honestly claim is the type itself — which is also the only part a
+ * chip has to match. The variable's name hangs past that edge, outside the block,
+ * on the tint its tokens will carry once it is substituted. It says which socket
+ * this is without pretending to be a requirement.
  *
- * Inside the box the typecode is opaque, in the row's own colour, and the
- * placeholder is a recess. That is the whole rule the colours encode: what a
- * chip covers opaquely, it has to match; the hole it also covers is free.
+ * Contrast a lock row, where the block wraps the entire statement, because there
+ * every token has to match.
  */
-function socketRow(card: Card, socket: Socket, variables: ReadonlySet<string>): Rendered {
+function socketRow(card: Card, socket: Socket, variables: ReadonlySet<string>): HTMLElement {
   const element = row("socket");
   element.dataset["var"] = socket.var;
 
@@ -74,38 +75,39 @@ function socketRow(card: Card, socket: Socket, variables: ReadonlySet<string>): 
     const seated = chipRow(fill, variables, "fill");
     seated.dataset["seated"] = slot;
     box.append(seated);
-    return { element, dispose: () => {} };
+    return element;
   }
 
   // The row, not the box, is the drop target: the slot's padding then counts as
   // part of it rather than as a dead band above every slot.
   element.dataset["slot"] = slot;
+  box.append(typecodeCell(socket.typecode));
 
-  const { svg, path } = createOutline("picture");
+  // Absolutely positioned, so it adds nothing to the row's width — which is what
+  // lets the block's edge stop at the typecode while this still draws past it.
   const notch = document.createElement("span");
   notch.className = "notch";
-  // The variable floats on the recess as the same chip it is everywhere else, so
-  // its identity colour comes from the one [data-var] indirection.
   const name = document.createElement("span");
   name.className = "token token--var";
   name.dataset["var"] = socket.var;
   name.dataset["token"] = socket.var;
   name.textContent = glyph(socket.var);
   notch.append(name);
-  box.append(svg, typecodeCell(socket.typecode), notch);
+  box.append(notch);
 
-  return { element, dispose: observeOutline(path, [box]) };
+  return element;
 }
 
 /**
- * A lock row: a dashed picture of the statement the card is waiting for, drawn
- * with the same token renderer as everything else, or the key that satisfied it.
+ * A lock row: a picture of the statement the card is waiting for, drawn with the
+ * same token renderer as everything else, or the key that satisfied it.
  *
- * The picture is inert while any socket is unfilled — it still contains
- * variables, so there is nothing definite to match against yet — and rewrites
- * live as sockets fill.
+ * The whole picture is inside the block, unlike a socket's, because every token
+ * of it has to match. The picture is inert while any socket is unfilled — it
+ * still contains variables, so there is nothing definite to match against yet —
+ * and rewrites live as sockets fill.
  */
-function lockRow(card: Card, index: number, variables: ReadonlySet<string>): Rendered {
+function lockRow(card: Card, index: number, variables: ReadonlySet<string>): HTMLElement {
   const element = row("lock");
   const slot = slotPath({ cardId: card.id, kind: "lock", index });
   const key = card.keys[index];
@@ -117,7 +119,7 @@ function lockRow(card: Card, index: number, variables: ReadonlySet<string>): Ren
     const seated = chipRow(key, variables, "key");
     seated.dataset["seated"] = slot;
     box.append(seated);
-    return { element, dispose: () => {} };
+    return element;
   }
 
   // Only a live lock is a drop target: while a socket is unfilled the picture
@@ -126,15 +128,14 @@ function lockRow(card: Card, index: number, variables: ReadonlySet<string>): Ren
   element.classList.add(live ? "row--live" : "row--inert");
   if (live) element.dataset["slot"] = slot;
 
-  const { svg, path } = createOutline("picture");
   const inner = document.createElement("span");
   inner.className = "picture-row";
   inner.append(
     ...statementCells(spans(card.template.locks[index], expansion(card.fills)), variables),
   );
-  box.append(svg, inner);
+  box.append(inner);
 
-  return { element, dispose: observeOutline(path, [inner]) };
+  return element;
 }
 
 function conclusionRow(
@@ -224,15 +225,11 @@ export function renderCard(
   if (!card.collapsed) {
     if (options.sockets ?? true) {
       for (const socket of card.template.sockets) {
-        const row = socketRow(card, socket, variables);
-        rows.push(row.element);
-        disposers.push(row.dispose);
+        rows.push(socketRow(card, socket, variables));
       }
     }
     card.template.locks.forEach((_, index) => {
-      const lock = lockRow(card, index, variables);
-      rows.push(lock.element);
-      disposers.push(lock.dispose);
+      rows.push(lockRow(card, index, variables));
     });
   }
   rows.push(conclusionRow(card, variables, options.toggle ?? false));

@@ -4,8 +4,11 @@
 // shape as slots fill. Drawing that with CSS borders means reasoning about which
 // edge belongs to which row and suppressing the interior rules — arithmetic that
 // took the design study several passes and broke every time a row changed width.
-// One measured path has no edges to get wrong, and the same component serves the
-// card perimeter, the dashed lock picture, and M3's hot legal-target highlight.
+// One measured path has no edges to get wrong.
+//
+// It draws the card perimeter and nothing else. Slots were drawn with it too,
+// dashed, until their background colours made the dashes a second telling of the
+// same thing.
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -45,9 +48,9 @@ export function outlinePath(rows: readonly RowSize[], inset = 0): string {
 }
 
 /** The empty svg a block hangs its outline on. Sits behind the rows. */
-export function createOutline(variant = ""): { svg: SVGSVGElement; path: SVGPathElement } {
+export function createOutline(): { svg: SVGSVGElement; path: SVGPathElement } {
   const svg = document.createElementNS(SVG_NS, "svg");
-  svg.setAttribute("class", variant ? `outline outline--${variant}` : "outline");
+  svg.setAttribute("class", "outline");
   svg.setAttribute("aria-hidden", "true");
   const path = document.createElementNS(SVG_NS, "path");
   svg.append(path);

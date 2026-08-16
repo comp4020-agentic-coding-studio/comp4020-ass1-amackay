@@ -210,42 +210,49 @@ has an external referent rather than being invented here.
   the silhouette is a staircase that changes as slots fill. Collapsed cards
   render the conclusion row only, which still wraps: "one-liner" means one row,
   not one visual line.
-- **A dashed outline is exactly where a seated chip lands.** Not approximately:
-  the same element is the slot in both states, so the promise is structural. Every
-  slot is therefore drawn whole, typecode included, because a chip leads with its
-  own typecode cell and that cell has to come to rest over the one the slot was
-  asking for.
-- **Opaque means "match this"; the recess is free.** That one rule is what the
-  three block surfaces encode. A socket's typecode is the parent block's, painted
-  in the row's own colour, and a chip has to match it; the rest of the socket is a
-  recess, and a chip needs to match nothing there. A lock's picture is a statement
-  that must be matched token for token, so it is row colour throughout and has no
-  recess at all. The conclusion row — what the block gives rather than what it
-  needs — carries the third colour.
-- **Slot padding is CSS padding on the row**, above every row and both sides of
-  every row but the conclusion, which is flush left and flush with the block's
-  bottom edge. This is load-bearing rather than tidy: `outlinePath` derives each
-  row's position by accumulating the row above it from x = 0, and border-box
-  padding keeps the row boxes tiling with no gaps while the content inside moves.
-  A grid `row-gap` or a row `margin` looks identical and breaks the outline.
-- **Socket row**: a dashed box holding the typecode the row expects and a
-  placeholder recess. The variable floats on the recess as the same chip it is
-  everywhere else — it says which socket this is without claiming to be something
-  to match. `canSeatSocket` guarantees the typecodes agree, so a filled socket
-  shows one typecode cell and not two; an identity-coloured edge marks the slot's
-  left edge once the dashes are gone.
-- **Lock row**: a dashed full-silhouette **picture** of the required statement,
-  drawn with the same token renderer, variable chips where sockets are unfilled.
-  Inert until all sockets are filled; rewrites live as they fill; then
-  highlightable. A seated key overlays the picture.
+- **The silhouette says what has to match.** A socket's block edge stops just
+  after its typecode, because a socket takes any expression of its type and the
+  type is the only part of it the block can honestly claim — and the only part a
+  chip has to match. A lock's block wraps its entire statement, because there every
+  token has to match. That difference in shape is the whole explanation of the
+  mechanic, drawn rather than written, and it is why the slots need no outline of
+  their own: dashes were a second telling of it.
+- **A socket's placeholder overhangs the block.** The variable's name sits past
+  that edge, out of flow, on exactly the tint its tokens will carry once it is
+  substituted — the same colour, not a washed-out relative of it, with the ink
+  faded instead so it reads as a ghost. It says which socket this is without
+  occupying block area for something that is not there yet.
+- **Two surfaces, and a chip has no third.** What the block needs — the slot rows
+  and every strip of padding — is one colour; what it gives is another. A chip
+  wears the second, because a chip *is* a collapsed derivation and looks the same
+  whether it is loose on the bench or seated. What says it is seated is where it
+  sits, inset with the block's padding around it, and not a colour it holds only
+  while it is there.
+- **Slot padding is CSS padding on the row**, on all four sides of every row but
+  the conclusion, which has none — flush left, flush right, flush with the block's
+  bottom edge, and the strip above it belonging to the last slot row. So a boundary
+  between two rows carries *two* strips, one the width of each. That is the point:
+  a seated chip's own top and bottom edges then never coincide with a boundary
+  between its host's rows, which reads as one line drawn through two blocks.
+  The padding being on the row is load-bearing rather than tidy — `outlinePath`
+  derives each row's position by accumulating the row above it from x = 0, and
+  border-box padding keeps the row boxes tiling while the content inside moves. A
+  grid `row-gap` or a row `margin` looks identical and breaks the outline.
+- **Lock row**: a full-silhouette **picture** of the required statement, drawn with
+  the same token renderer, variable chips where sockets are unfilled. Inert until
+  all sockets are filled; rewrites live as they fill; then highlightable. A seated
+  key overlays the picture.
 - **Outline component**: perimeters are never drawn edge-by-edge per row. Rows
   lay out in a grid and each block outline is one absolutely-positioned SVG
-  `<path>` whose staircase geometry comes from measured row rects. One
-  `BlockOutline` serves three uses: card perimeter (solid), slot box (dashed),
-  legal-target highlight (hot dashed). Absolute positioning is why the slot uses
-  it rather than a dashed border — a border would make the empty box and the
-  filled one different sizes. It is drawn *over* its rows, which are opaque and
-  carry the background, so the outline needs no fill.
+  `<path>` whose staircase geometry comes from measured row rects, drawn *over*
+  its rows, which are opaque and carry the background, so it needs no fill. It
+  draws the card perimeter and nothing else. An `<svg>` is a replaced element, so
+  it needs an explicit `width`/`height` — `inset: 0` alone leaves it at SVG's
+  intrinsic 300×150, which is an invisible box sticking out of every card narrower
+  than that, and enough to put the bench into horizontal scroll.
+- **The row is the drop target, not the slot box.** `data-slot` sits on the row
+  so the slot's padding counts as part of it, rather than leaving a dead band
+  above every slot where a release falls through to the bench.
 - **The row is the drop target, not the slot box.** `data-slot` sits on the row
   so the slot's padding counts as part of it, rather than leaving a dead band
   above every slot where a release falls through to the bench.
@@ -256,8 +263,9 @@ has an external referent rather than being invented here.
   and never the viewport.
 - **Ghost**: unrotated, bench scale, translucent — the visitor has to be able to
   compare the carried chip against the slot it is over.
-- **Seated vs loose tint**: seated chips get a distinct background; a popped key
-  visibly becomes loose without moving.
+- **Legal targets** light the slot box: on a socket that is the typecode, which is
+  exactly what the chip must match; on a lock, the whole statement. The
+  overhanging placeholder comes up to full strength alongside it.
 - **Rewrite flash**: on any seat, every token span that seat produced flashes,
   keyed by the slot; all occurrences of a variable flash together, because
   ax-1's two `ph`s are one substitution and not two.
@@ -356,6 +364,14 @@ Built or specified, then dropped. Recorded so they are not re-proposed.
 - **A recess inside a lock's dashed picture**, matching the socket's. It made
   every slot look alike at the cost of the distinction worth drawing: a lock has
   to be matched token for token, so none of it is open space.
+- **Dashed outlines on the slots**, and a recess *inside* a socket rather than an
+  overhang beside it. Both were built. Once the block's edge stopped after the
+  typecode, the shape said everything the dashes did — and drawing a socket as a
+  box the full width of the statement that will fill it claimed block area for
+  something that was not there yet.
+- **A distinct background for a seated chip.** It was the one thing that made a
+  popped key visibly become loose without moving, and it cost a chip looking like
+  two different things depending on where it sat.
 - **Quiet typographic direction** (warm paper, thin notches, no colour) — lost to
   the chunky, diagrammatic direction.
 - **One bordered box per row** — replaced by the single measured SVG outline.
@@ -386,6 +402,10 @@ Built or specified, then dropped. Recorded so they are not re-proposed.
   frequently overlaps it.
 - **The post-fill re-clamp runs a beat late**, so a card that grew can jump
   slightly.
+- **A popped key does not look popped.** Ejecting a fill can unseat a key, which
+  stays where it is and is now loose; nothing about it changes to say so, since a
+  chip deliberately looks the same seated or not. The visible cue is gone and
+  nothing has replaced it.
 - **Rapid successive seats** cut the previous flash short — there is one flash
   key in the render state.
 - **No undo**, and no way to clear the bench.
