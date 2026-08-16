@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
@@ -70,6 +70,26 @@ describe('spec: "static and client-side throughout"', () => {
       missing,
       `These reference files that aren't in dist/, so they 404 for a visitor: ${missing.join(", ")}`,
     ).toEqual([]);
+  });
+
+  it("ships the fonts its stylesheet asks for", () => {
+    // The check above walks [src] and [href] in the markup, which is every
+    // reference except the ones inside CSS — so a wrong font path would ship as
+    // a silent fall back to whatever face the reader's machine has, which is
+    // the exact thing shipping the font exists to prevent. Nothing looks broken;
+    // it just quietly stops being the same page for everybody.
+    const css = readdirSync(join(DIST, "assets"))
+      .filter((name) => name.endsWith(".css"))
+      .map((name) => readFileSync(join(DIST, "assets", name), "utf8"))
+      .join("\n");
+
+    const fonts = [...css.matchAll(/url\(\s*["']?([^"')]+\.woff2)["']?\s*\)/g)].map((m) => m[1]);
+    expect(fonts.length, "The built CSS references no woff2 at all.").toBe(2);
+
+    const missing = fonts.filter((ref) => !existsSync(resolve(DIST, "assets", ref)));
+    expect(missing, `Fonts the CSS asks for that aren't in dist/: ${missing.join(", ")}`).toEqual(
+      [],
+    );
   });
 
   it("ships no server-side artefact into dist", () => {

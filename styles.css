@@ -1,5 +1,31 @@
-/* IBM Plex is named but not loaded: a webfont is an external request the links
-   check would follow, and the system fallbacks carry the design. */
+/* The statements are set in a font this repo ships, because the alternative is
+   not a font at all — it is whatever each machine happens to have. Naming
+   Cambria Math and STIX got the variables from one typeface and the operators
+   beside them from another, differently per reader; folding to plain Greek got
+   them from a monospace bold oblique, which is narrow and heavy. Shipping the
+   file is what every maths site does, and it is the only version of this that
+   is the same for everybody.
+   Two faces, one family, split on style — which is also set.mm's own convention
+   for variables. Between them they cover every character either palette renders:
+   Math-Italic has the Greek and italic Latin, Main-Regular the operators,
+   brackets and upright Latin. Neither has the other's, so the style axis routes
+   each character to the only face that can draw it, with nothing falling back.
+   The chrome is not set in these — see --mono. */
+@font-face {
+  font-family: "Proof Math";
+  src: url("./src/fonts/KaTeX_Main-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Proof Math";
+  src: url("./src/fonts/KaTeX_Math-Italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
 
 :root {
   /* surfaces */
@@ -73,24 +99,28 @@
 
   /* type */
 
-  /* Faces that are actually installed, rather than maths faces that mostly are
-     not. This stack used to end in Cambria Math / STIX / Noto Maths, named to
-     cover the Mathematical Alphanumeric Symbols set.mm writes variables with —
-     but naming a font almost nobody has is not coverage, and the variables
-     landed in a different face from the operators beside them, differently on
-     each machine. src/notation folds those characters to ordinary Greek and
-     Latin instead, so all this has to cover now is letters, arrows and ⊢. The
-     last two entries are for ⊢ alone, which Consolas lacks. */
+  /* Statements. The system stack behind it is a backstop for a failed font
+     load, never the plan; the shipped faces cover everything rendered. */
+  --math: "Proof Math", "DejaVu Serif", "Liberation Serif", georgia, serif;
+
+  /* Chrome only — the title, the delete target, the collapse caret. Nothing
+     mathematical is set in this, so it needs no maths coverage; the caret's
+     ⌄ / ⌃ are the reason the toggle stays here rather than moving to --math. */
   --mono: ui-monospace, "DejaVu Sans Mono", "Liberation Mono", menlo, consolas,
-    "Segoe UI Symbol", "Cambria Math", monospace;
+    monospace;
   --sans: "IBM Plex Sans", system-ui, sans-serif;
+
+  /* One weight, because the shipped faces have one. Asking for a weight a font
+     does not carry makes the browser draw a thickened counterfeit of it, which
+     is how the Greek came to look bolded in the first place. The blocks get
+     their weight from the 2px outlines and the typecode cells instead. */
   --token-size: 17px;
-  --token-weight: 600;
+  --token-weight: 400;
   --var-pad-x: 4px;
   --tc-size: 16px;
-  --tc-weight: 700;
+  --tc-weight: 400;
   --slot-size: 16px;
-  --slot-weight: 700;
+  --slot-weight: 400;
 
   /* motion */
   --t-slot: 160ms;
@@ -265,6 +295,11 @@ body {
 .block {
   position: relative;
   display: grid;
+
+  /* No counterfeit bold or slant. The shipped faces carry one weight and one
+     real italic; anything asking past that should fall to the true face or go
+     without, never to a browser's imitation of it. */
+  font-synthesis: none;
   grid-template-columns: minmax(0, 1fr);
   justify-items: start;
   max-width: var(--block-max-w);
@@ -322,7 +357,7 @@ body {
   border: var(--border-w) dashed var(--var-line, var(--panel-border));
   background: var(--var-fill, transparent);
   color: var(--var-ink, var(--ink));
-  font-family: var(--mono);
+  font-family: var(--math);
   font-size: var(--slot-size);
   font-weight: var(--slot-weight);
   transition:
@@ -494,7 +529,7 @@ body {
   justify-content: center;
   width: var(--tc-w);
   padding: 3px 0 4px;
-  font-family: var(--mono);
+  font-family: var(--math);
   font-size: var(--tc-size);
   font-weight: var(--tc-weight);
 }
@@ -518,7 +553,7 @@ body {
   gap: var(--token-gap-y) var(--token-gap-x);
   min-width: 0;
   padding: var(--pad);
-  font-family: var(--mono);
+  font-family: var(--math);
   font-size: var(--token-size);
   font-weight: var(--token-weight);
   line-height: var(--line-height);
@@ -623,18 +658,19 @@ body {
 
 /* Bench blocks tighten where the canvas is too narrow to hold the longest
    template unwrapped. The threshold is measured, not chosen: ax-2's conclusion
-   is 376px at the full size, and the block cap is the canvas less a 26px
-   gutter, so it stops fitting at about 402px of canvas — which in this layout
-   is the viewport. 460 leaves room for the marker's font fallbacks to measure
-   differently from these.
+   is 378px at the full size, and the block cap is the canvas less a 26px
+   gutter, so it stops fitting at about 404px of canvas — which in this layout
+   is the viewport. These numbers hold on every machine now that the font ships
+   with the page, so the margin here is for subpixels rather than for whatever
+   face a reader turned out to have.
 
    Mostly geometry rather than type: dropping the typecode cell, the row padding
-   and the variable chips gets ax-2 to 333px against a 364px cap at 390 wide,
+   and the variable chips gets ax-2 to 335px against a 364px cap at 390 wide,
    for one step down in token size rather than the two it first took.
 
    The palette is untouched: it declares its own scale on `.palette-blocks`,
    which beats an inherited one, and it already fits. */
-@media (width < 460px) {
+@media (width < 420px) {
   :root {
     --tc-w: 36px;
     --pad: 7px;

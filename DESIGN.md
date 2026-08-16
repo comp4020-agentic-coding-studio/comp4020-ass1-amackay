@@ -271,10 +271,10 @@ extracted table keeps set.mm's own codepoints; the fold is the renderer's
 decision, and 383 of the 1,776 definitions are affected.
 
 The reason is font coverage, and it is not cosmetic: almost nothing has that
-block, so the browser resolves each of those characters against whatever face it
-can find, one glyph at a time — the variables arrived in a different style from
-the operators beside them, and a different one on each machine. The letters they
-fold to are in every general-purpose font.
+block, so the browser resolved each of those characters against whatever face it
+could find, one glyph at a time — the variables arrived in a different style
+from the operators beside them, and a different one on each machine. The letters
+they fold to are the ones the shipped faces draw.
 
 The cost is that set.mm encodes "this is a variable" in the codepoint, and the
 fold spends it; CSS italic on the tokens the palette declares as variables buys
@@ -283,12 +283,33 @@ it back. Across the whole table the fold makes 29 token pairs indistinguishable
 uses, and a test in `notation.test.ts` holds that line rather than trusting it.
 `scripts/notation-collisions.py` produced the number.
 
-`--mono` therefore names faces that are widely installed rather than
-math-capable ones that are not; its last two entries exist for `⊢` alone.
+**The font ships with the page** — `src/fonts/`, two KaTeX faces, 43KB, MIT.
+Statements are set in it; the chrome is not. A system stack cannot promise the
+same rendering to two readers, and this artefact is *read* rather than operated
+for most of the time anyone spends on it, so that promise is worth 43KB. It is
+also simply what maths on the web does: MathJax and KaTeX both self-host.
 
-**A self-hosted subset font is the only way to make this identical everywhere**
-rather than merely consistent, and it is not done: it needs a subsetting step
-this repo has no tooling for, and a font binary with its licence in the tree.
+They are declared as one family split on style, which is set.mm's own convention
+for variables and does all the routing for free: `Math-Italic` has the Greek and
+italic Latin, `Main-Regular` the operators, brackets and upright Latin, and
+neither has the other's, so every character resolves to the one face that can
+draw it. Verified by reading both cmaps rather than by looking at the page.
+
+Two consequences worth stating, because both were learnt the hard way:
+
+- **One weight.** These faces carry one, and asking a browser for a weight a
+  font does not have gets a thickened counterfeit — which is how the Greek came
+  to look bolded. `font-synthesis: none` on `.block` makes that impossible
+  rather than merely unlikely. The blocks take their weight from the 2px
+  outlines and the typecode cells instead.
+- **`src/fonts/`, not `public/`.** Vite refuses to resolve a `url()` into
+  `public/`, so it would need a root-absolute path, which 404s under the Pages
+  sub-path. From `src/` the reference is rewritten and hashed, and a test over
+  the built CSS checks the fonts it asks for actually shipped — nothing else
+  looks at `url()`, and the failure is silent by nature: the page just quietly
+  stops being the same for everybody.
+
+`--mono` is now chrome only, and needs no maths coverage.
 
 ## Rejected
 
