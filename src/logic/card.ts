@@ -154,3 +154,70 @@ export function thaw(chip: Chip, placement: Placement): Card {
   };
 }
 
+/** A key unseated by an eject, and the lock it came out of. */
+export interface Popped {
+  lockIndex: number;
+  chip: Chip;
+}
+
+/**
+ * Pull a chip out of a socket, and unseat every key whose lock mentions that
+ * variable — the lock's picture no longer says what the key satisfies, so the
+ * key **pops**. Popped keys are returned in lock order; the caller turns them
+ * into loose cards where they already sit.
+ *
+ * "Mentions" is literal: the variable appears as a token in the *raw*
+ * `template.locks[i]`. The alternative — pop only where the picture textually
+ * changed — differs in exactly one case, a socket filled by the bare variable
+ * chip of the same name, and it is the worse rule twice over. A key stands for
+ * "this derivation satisfies that hypothesis *under these fills*", so when a
+ * fill it depended on goes, keeping the key keeps it on a coincidence. And the
+ * literal rule is the one that makes this gesture depend only on the template:
+ * the same eject on two structurally identical cards pops the same locks,
+ * whatever happens to be seated in them.
+ *
+ * Keys in locks that don't mention the variable stay seated: the
+ * all-sockets-filled gate applies to *seating*, not to retention.
+ */
+export function eject(
+  card: Card,
+  varName: string,
+): { card: Card; chip: Chip; popped: Popped[] } {
+  const chip = card.fills[varName];
+  if (chip === undefined) {
+    throw new Error(`${card.template.label}: socket ${varName} is empty`);
+  }
+
+  const fills = { ...card.fills };
+  delete fills[varName];
+
+  const keys = [...card.keys];
+  const popped: Popped[] = [];
+  card.template.locks.forEach((lock, lockIndex) => {
+    const key = keys[lockIndex];
+    if (key !== null && lock.includes(varName)) {
+      popped.push({ lockIndex, chip: key });
+      keys[lockIndex] = null;
+    }
+  });
+
+  return { card: { ...card, fills, keys }, chip, popped };
+}
+
+/**
+ * Pull a key out of a lock. Nothing pops: a key is substituted into nothing, so
+ * removing one changes no picture.
+ *
+ * Not among DESIGN.md's named operations, and here for the reason the seat verbs
+ * are: the interaction lifts any seated chip, and a key is a seated chip.
+ */
+export function ejectKey(card: Card, index: number): { card: Card; chip: Chip } {
+  const chip = card.keys[index];
+  if (chip === undefined || chip === null) {
+    throw new Error(`${card.template.label}: lock ${index} has no key`);
+  }
+  const keys = [...card.keys];
+  keys[index] = null;
+  return { card: { ...card, keys }, chip };
+}
+

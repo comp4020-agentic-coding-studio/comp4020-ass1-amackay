@@ -23,10 +23,13 @@ export { same, substitute } from "./expression";
 
 export { conclusionTokens, variableChip, variableTemplate } from "./chip";
 
+export type { Popped } from "./card";
 export {
   canSeatLock,
   canSeatSocket,
   createCard,
+  eject,
+  ejectKey,
   freeze,
   instantiatedConclusion,
   instantiatedLocks,
