@@ -172,10 +172,27 @@ has an external referent rather than being invented here.
   because `spec/invariants.test.ts` requires a nav and exactly one `h1` on every
   built page and the canvas has no room to spend on either.
 - **The palette is a tray floating over the canvas** — a drawer flush to the left
-  edge at ≥700px, a band across the top below that, sized so palette and bench
-  are visible together at 390×844. It carries a grip mark on its inner edge; the
-  gesture that would use it is not built. The dot grid runs underneath it: the
-  tray floats over a continuous surface rather than sitting beside a shorter one.
+  edge at ≥760px, a band across the top below that, sized so palette and bench
+  are visible together at 390×844. The dot grid runs underneath it: the tray
+  floats over a continuous surface rather than sitting beside a shorter one.
+- **The tray's inner edge is a handle**, and its size is the visitor's. It writes
+  `--tray-w` (or `--tray-h`) and stops: the tray's own size and the bench's
+  placement inset are both drawn from that one property, and the bench's existing
+  `ResizeObserver` re-caps and re-clamps from there, so `src/ui/tray.ts` knows
+  nothing about cards. Pointer and arrow keys, `role="separator"`, no persistence.
+- **The palette shows no socket rows.** A palette block is a menu entry saying
+  what its template *concludes*; its notches would be slots nothing could ever be
+  dropped into, since a palette card is not on the bench and has no fills. The
+  sockets appear the moment a copy lands. Lock rows stay — those say what the
+  template still needs before it will conclude anything.
+- **Tokens are set solid.** Metamath separates them with spaces because its
+  grammar needs them separated; a rendered statement does not, and the space was
+  most of what made a conclusion wrap. Each token is still its own element, so
+  the wrap points are exactly where they were — just no longer visible as gaps.
+  The only horizontal padding left is the variable chip's, which is what makes it
+  read as a chip. The default tray width is measured from this: the widest
+  template conclusion (ax-3) plus the column's padding, so nothing in the palette
+  wraps at either viewport until the visitor drags it narrower.
 - **The tray's footprint and the placement area are two different things.** Cards
   are clamped to the canvas *minus* the tray, so nothing can ever land where the
   tray would hide it. That is `.bench-cards` being inset in CSS and nothing more:
@@ -312,9 +329,9 @@ Built or specified, then dropped. Recorded so they are not re-proposed.
 - **Page framing** — the title sits in the tray's head; the sentence or two and
   the one ignorable invitation are still to write. Prose, not architecture. Due
   before shipping.
-- **Showing and hiding the tray** — the drawer is drawn as something that could
-  be put away, and nothing puts it away. Whether the gesture exists, and whether
-  the canvas reclaims the space when it does: undecided.
+- **Showing and hiding the tray** — the handle resizes it and nothing puts it
+  away. Whether a hide gesture exists, and whether it is the same handle:
+  undecided.
 
 ## Status
 

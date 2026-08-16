@@ -161,6 +161,13 @@ export interface RenderOptions {
   flash?: SlotRef | null;
   /** Whether this card can be expanded and re-collapsed — bench cards only. */
   toggle?: boolean;
+  /**
+   * Whether to draw the socket rows. The palette turns them off: its blocks are
+   * a menu of what each template *says*, and an empty notch there is a slot
+   * nothing can be dropped into — a palette card is not on the bench, so it has
+   * no fills to show. They appear the moment a copy lands on the bench.
+   */
+  sockets?: boolean;
 }
 
 export function renderCard(
@@ -182,7 +189,9 @@ export function renderCard(
   const disposers: (() => void)[] = [];
 
   if (!card.collapsed) {
-    for (const socket of card.template.sockets) rows.push(socketRow(card, socket, variables));
+    if (options.sockets ?? true) {
+      for (const socket of card.template.sockets) rows.push(socketRow(card, socket, variables));
+    }
     card.template.locks.forEach((_, index) => {
       const lock = lockRow(card, index, variables);
       rows.push(lock.element);

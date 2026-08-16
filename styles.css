@@ -48,14 +48,22 @@
   --radius: 0;
 
   /* The tray's footprint, and the inset it costs the placement area. The dot
-     grid runs full bleed underneath it; only these say where cards may land. */
-  --tray-w: 308px;
+     grid runs full bleed underneath it; only these say where cards may land.
+     The default width is measured, not chosen: the widest template conclusion
+     (ax-3) is 337px at the palette's scale, and this is that plus the column's
+     padding — so nothing in the palette wraps until the visitor drags it
+     narrower. The handle exists for the statements that are wider still. */
+  --tray-w: 372px;
   --tray-h: 38dvh;
   --bench-inset-x: var(--tray-w);
   --bench-inset-y: 0px;
   --pad: 9px;
   --tc-w: 46px;
-  --token-gap-x: 7px;
+
+  /* Metamath's tokens are space-separated because its grammar needs them to be;
+     a rendered statement does not. Every token is still its own element, so the
+     wrap points are unchanged — they are just no longer visible as gaps. */
+  --token-gap-x: 0;
   --token-gap-y: 2px;
   --line-height: 1.45;
 
@@ -138,13 +146,21 @@ body {
   box-shadow: 5px 0 16px rgb(20 26 40 / 10%);
 }
 
-/* A grip on the inner edge: enough to read as a drawer that could be pushed
-   away, drawn rather than built, so nothing here looks like a control that
-   does not exist yet. */
-.tray::after {
+/* The inner edge is the handle: a strip the full length of the drawer, with a
+   grip drawn at its middle. */
+.tray-handle {
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 0 auto;
+  width: 11px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.tray-handle::after {
   position: absolute;
   top: 50%;
-  right: 5px;
+  left: 3px;
   width: 5px;
   height: 30px;
   border-right: 1px solid var(--label);
@@ -152,6 +168,17 @@ body {
   content: "";
   opacity: 0.5;
   transform: translateY(-50%);
+}
+
+.tray-handle:hover::after,
+.tray-handle:focus-visible::after {
+  border-color: var(--ink);
+  opacity: 1;
+}
+
+.tray-handle:focus-visible {
+  outline: var(--border-w) solid var(--hot-line);
+  outline-offset: -2px;
 }
 
 .tray-head {
@@ -173,10 +200,9 @@ body {
 .palette-blocks {
   --pad: 7px;
   --tc-w: 36px;
-  --token-size: 13px;
-  --tc-size: 12px;
-  --slot-size: 12px;
-  --token-gap-x: 5px;
+  --token-size: 14px;
+  --tc-size: 13px;
+  --slot-size: 13px;
 
   /* Palette blocks wrap against the column, exactly as bench cards wrap against
      the bench. Without this they keep the 560px design cap, overflow a 326px
@@ -493,8 +519,11 @@ body {
   line-height: var(--line-height);
 }
 
+/* Set solid: a token's own padding is the last thing standing between two
+   glyphs, so it is as tight as each kind of token can bear. A variable keeps
+   enough to read as a chip; a plain token keeps none. */
 .token {
-  padding: 1px 1px 2px;
+  padding: 1px 0 2px;
   color: var(--ink);
   white-space: nowrap;
 
@@ -503,13 +532,16 @@ body {
   transition: background-color var(--t-token) ease;
 }
 
+/* No padding of its own: a substituted token sits as tight as a template one,
+   so the tint runs continuously across the whole substituted stretch instead of
+   striping it token by token — which is the truer picture, since one seat put
+   all of it there. */
 .token--sub {
-  padding: 1px 4px 2px;
   background: var(--prov-bg);
 }
 
 .token--var {
-  padding: 1px 6px 2px;
+  padding: 1px 4px 2px;
   background: var(--var-fill, var(--prov-bg));
   color: var(--var-ink, var(--ink));
 }
@@ -536,10 +568,11 @@ body {
 }
 
 /* The drawer becomes a tray across the top. The threshold is where the drawer
-   stops leaving a canvas worth working in: its 308px plus about 380px of bench.
+   stops leaving a canvas worth working in: its 372px plus about 380px of bench.
    Only the tray's footprint and the inset it costs change — the geometry is the
-   same rules reading different numbers. */
-@media (width < 700px) {
+   same rules reading different numbers. `NARROW` in src/ui/tray.ts is this
+   number, because the handle resizes whichever edge the tray is currently on. */
+@media (width < 760px) {
   :root {
     --bench-inset-x: 0px;
     --bench-inset-y: var(--tray-h);
@@ -553,10 +586,17 @@ body {
     box-shadow: 0 5px 16px rgb(20 26 40 / 10%);
   }
 
-  .tray::after {
-    top: auto;
+  .tray-handle {
+    inset: auto 0 0;
+    width: auto;
+    height: 11px;
+    cursor: row-resize;
+  }
+
+  .tray-handle::after {
+    top: 3px;
     right: 50%;
-    bottom: 5px;
+    left: auto;
     width: 30px;
     height: 5px;
     border-right: 0;

@@ -32,6 +32,27 @@ const paths = (el: HTMLElement, attribute: string): string[] =>
     (n) => n.dataset[attribute] ?? "",
   );
 
+describe("palette rendering", () => {
+  it("draws no socket rows, and so offers no slot to drop into", () => {
+    const w = new Workspace();
+    const card = w.mint(wi, 0, 0);
+    const element = renderCard(card, variables, { sockets: false }).element;
+
+    expect(element.querySelectorAll(".row--socket")).toHaveLength(0);
+    // A palette card is not on the bench, so a notch there would be a target
+    // nothing could ever be seated in.
+    expect(paths(element, "slot")).toEqual([]);
+    expect(element.querySelectorAll(".row--conclusion")).toHaveLength(1);
+  });
+
+  it("keeps the lock rows, which say what the template still needs", () => {
+    const w = new Workspace();
+    const element = renderCard(w.mint(axMp, 0, 0), variables, { sockets: false }).element;
+
+    expect(element.querySelectorAll(".row--lock")).toHaveLength(axMp.locks.length);
+  });
+});
+
 describe("addressing", () => {
   it("gives every empty socket a slot path that parses back", () => {
     const w = new Workspace();

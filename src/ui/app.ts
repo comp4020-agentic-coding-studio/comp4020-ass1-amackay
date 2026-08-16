@@ -3,6 +3,7 @@ import prototypeJson from "../palettes/prototype.json?raw";
 import { renderCard } from "./block";
 import { installDrag } from "./drag";
 import { installKeyboard } from "./keyboard";
+import { installTray } from "./tray";
 import { slotPath, Workspace, type SlotRef } from "./workspace";
 
 // Imported as text, not fetched. `public/` can only be fetched, and a fetch
@@ -67,7 +68,9 @@ export function mount(root: ParentNode): void {
   // card of its template, marked with its index so a grab can name it.
   paletteBlocks.replaceChildren(
     ...entries.map((template, index) => {
-      const { element } = renderCard(workspace.mint(template, 0, 0), variables);
+      const { element } = renderCard(workspace.mint(template, 0, 0), variables, {
+        sockets: false,
+      });
       element.dataset["paletteIndex"] = String(index);
       element.dataset["coreInteraction"] = "";
       return element;
@@ -168,6 +171,7 @@ export function mount(root: ParentNode): void {
   });
 
   installKeyboard({ workspace, entries, benchCards, render, onSeat, ui });
+  installTray(root);
 
   /**
    * A card grows when a run rewraps, so a narrower bench can leave one hanging
