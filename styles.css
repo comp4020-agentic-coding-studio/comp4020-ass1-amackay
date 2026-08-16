@@ -39,10 +39,10 @@
   --label: #8b92a6;
   --meta: #6f7480;
 
-  /* typecode cells (no border) */
-  --tc-wff-bg: #dff4f1;
+  /* Typecodes are colour-coded in the ink alone: is this a claim or a piece of
+     syntax. A filled cell behind them competed with the slot colours, which have
+     to carry a meaning of their own. */
   --tc-wff-ink: #0d4d46;
-  --tc-stmt-bg: #fdf0dc;
   --tc-stmt-ink: #5b3608;
 
   /* variable identity — one hue per variable the palette declares */
@@ -67,11 +67,25 @@
   --prov-bg: rgb(17 17 17 / 5.5%);
 
   /* a chip seated in a slot, against a card loose on the bench */
-  --seated-bg: #f2f4f8;
+  --seated-bg: #eef2f8;
+
+  /* The three surfaces of a block, and the rule they encode: what a chip covers
+     opaquely it has to match, and the recess it also covers is free.
+     --block-bg  the rows above: what the block needs, and a socket's typecode
+     --slot-bg   the recess in an empty socket, where anything of that type goes
+     --conclusion-bg  the bottom row: what the block gives
+     Warm for the conclusion rather than a fourth near-identical grey, so the
+     band reads as a different kind of thing and not as a deeper hole. */
+  --slot-bg: #dce1eb;
+  --conclusion-bg: #f6f3ee;
 
   /* geometry */
   --border-w: 2px;
   --radius: 0;
+
+  /* The breathing room around a slot: above every row, and to the left and right
+     of every row but the conclusion. */
+  --slot-pad: 7px;
 
   /* The tray's footprint, and the inset it costs the placement area. The dot
      grid runs full bleed underneath it; only these say where cards may land.
@@ -235,6 +249,7 @@ body {
 .palette-blocks {
   --pad: 7px;
   --tc-w: 36px;
+  --slot-pad: 5px;
   --token-size: 14px;
   --tc-size: 13px;
   --slot-size: 13px;
@@ -285,7 +300,12 @@ body {
 }
 
 /* A block is a stack of shrink-to-fit rows, so its silhouette is a staircase.
-   Rows touch: any gap between them would break the outline into pieces.
+   The rows' boxes touch, and have to: outlinePath derives each row's position by
+   accumulating the one above it, from x = 0. The gaps you can see are padding
+   *inside* those boxes — border-box, so the measurement includes it — which is
+   how the content can be inset and indented while the geometry the outline is
+   written for stays exactly true. A grid row-gap or a row margin would look the
+   same and would break it.
 
    minmax(0, 1fr) rather than the default `auto` track: an auto track sizes to
    its max-content, so the rows would keep their unwrapped width and spill out
@@ -329,7 +349,12 @@ body {
 }
 
 /* Each row carries the block background, so the union of the rows *is* the
-   staircase and the outline needs no fill to match it. */
+   staircase and the outline needs no fill to match it.
+
+   The padding is the slot's breathing room: above every row, and both sides of
+   every row that holds a slot. No row has padding below it, so the gap between
+   two rows is one row's top padding and the conclusion sits flush with the
+   block's bottom edge. */
 .row {
   position: relative;
   z-index: 1;
@@ -337,7 +362,16 @@ body {
   flex-wrap: nowrap;
   width: max-content;
   max-width: 100%;
+  padding: var(--slot-pad) var(--slot-pad) 0;
   background: var(--block-bg);
+}
+
+/* What the block gives, against what it needs. Flush left and flush with the
+   block's bottom edge — it is the block's own face rather than something set
+   into it, so it takes no indent. */
+.row--conclusion {
+  padding: var(--slot-pad) 0 0;
+  background: var(--conclusion-bg);
 }
 
 /* Inert while any socket is unfilled: the picture still holds variables, so
@@ -346,6 +380,20 @@ body {
   opacity: 0.66;
 }
 
+/* Exactly where a seated chip lands, empty or full: the same element in both
+   states, so the promise is structural rather than tuned. It draws its dashes
+   with the block outline component, which is absolutely positioned and costs no
+   layout — a dashed border here would make the empty box and the filled one
+   different sizes. */
+.slot {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+/* The recess: the part of a socket that is genuinely open, so nothing about a
+   chip has to match it. The variable floats on top as the chip it is everywhere
+   else, saying which one this socket is without claiming to be a requirement. */
 .notch {
   display: flex;
   flex: none;
@@ -353,16 +401,12 @@ body {
   align-self: stretch;
   justify-content: center;
   min-width: 3.4em;
-  padding: 4px 11px 5px;
-  border: var(--border-w) dashed var(--var-line, var(--panel-border));
-  background: var(--var-fill, transparent);
-  color: var(--var-ink, var(--ink));
+  padding: 4px 7px 5px;
+  background: var(--slot-bg);
   font-family: var(--math);
   font-size: var(--slot-size);
   font-weight: var(--slot-weight);
-  transition:
-    border-color var(--t-slot) ease,
-    background-color var(--t-slot-bg) ease;
+  transition: background-color var(--t-slot-bg) ease;
 }
 
 /* A chip in a slot reads differently from a card loose on the bench. */
@@ -373,22 +417,16 @@ body {
   background: var(--seated-bg);
 }
 
-/* A seated chip leads with its own typecode cell, which is by definition the
-   same typecode the socket asked for — that match is the fit you are meant to
-   see. The edge says where the socket stops and its contents start, and carries
-   the variable's colour, which the notch was the only thing showing before. */
+/* A seated chip fills its slot exactly, so its own typecode cell comes to rest
+   over the one the socket was asking for — by definition the same typecode, and
+   that coincidence is the fit you are meant to see. The edge is the slot's left
+   edge, still carrying the variable's colour now that the dashes are gone. */
 .seated--fill {
   border-left: var(--border-w) solid var(--var-line, var(--ink));
 }
 
 .seated--key {
   border-left: var(--border-w) solid var(--tc-stmt-ink);
-}
-
-.picture {
-  position: relative;
-  display: inline-flex;
-  min-width: 0;
 }
 
 .picture-row {
@@ -446,18 +484,20 @@ body {
   line-height: 1;
 }
 
-/* Every slot the carried chip could legally fill, lit at once. */
-.notch.is-legal {
-  border-color: var(--hot-line);
-  background: var(--hot-fill);
-  color: var(--hot-ink);
-  box-shadow: 0 0 0 3px var(--hot-ring);
+/* Every slot the carried chip could legally fill, lit at once. The row is the
+   drop target, so the row is what lights up — and the ring lands on the slot
+   box inside it, which is the part the chip will actually occupy. */
+.row.is-legal {
   cursor: copy;
 }
 
-.picture.is-legal {
+.row.is-legal .slot {
   box-shadow: 0 0 0 3px var(--hot-ring);
-  cursor: copy;
+}
+
+.row.is-legal .notch {
+  background: var(--hot-fill);
+  color: var(--hot-ink);
 }
 
 /* Where the keyboard's target cursor currently sits, among the legal slots. */
@@ -467,8 +507,8 @@ body {
 }
 
 /* One measured path per block, over its rows — the rows are opaque, and a
-   stroke drawn under them is a stroke nobody sees. Drawing on top is also what
-   a border does, so a typecode cell's colour running to the edge is correct. */
+   stroke drawn under them is a stroke nobody sees. The same component, nested
+   inside a slot, draws that slot's dashes over its own contents. */
 .outline {
   position: absolute;
   inset: 0;
@@ -493,9 +533,9 @@ body {
   stroke-dasharray: 5 4;
 }
 
-/* A lock picture that is a legal target: the same hot dashed outline, which is
-   the third use the one BlockOutline component was built for. */
-.picture.is-legal .outline--picture path {
+/* A slot that is a legal target: the same dashes, hot — which is the third use
+   the one BlockOutline component was built for. */
+.row.is-legal .outline--picture path {
   stroke: var(--hot-line);
 }
 
@@ -535,12 +575,10 @@ body {
 }
 
 .typecode--wff {
-  background: var(--tc-wff-bg);
   color: var(--tc-wff-ink);
 }
 
 .typecode--stmt {
-  background: var(--tc-stmt-bg);
   color: var(--tc-stmt-ink);
 }
 
@@ -584,15 +622,11 @@ body {
    letters of the Mathematical Alphanumeric Symbols block. The renderer folds
    those to ordinary letters so they render the same everywhere, which spends
    that distinction; this is where it is bought back. */
-.token--var,
-.notch {
-  font-style: italic;
-}
-
 .token--var {
   padding: 1px var(--var-pad-x) 2px;
   background: var(--var-fill, var(--prov-bg));
   color: var(--var-ink, var(--ink));
+  font-style: italic;
 }
 
 .is-flash {
@@ -674,6 +708,7 @@ body {
   :root {
     --tc-w: 36px;
     --pad: 7px;
+    --slot-pad: 5px;
     --token-size: 16px;
     --tc-size: 15px;
     --slot-size: 15px;

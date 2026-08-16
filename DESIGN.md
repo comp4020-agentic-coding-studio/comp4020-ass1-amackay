@@ -210,10 +210,30 @@ has an external referent rather than being invented here.
   the silhouette is a staircase that changes as slots fill. Collapsed cards
   render the conclusion row only, which still wraps: "one-liner" means one row,
   not one visual line.
-- **Socket row**: the typecode the row expects, then a dashed typecode-shaped
-  notch. A seated chip leads with its own typecode cell, which `canSeatSocket`
-  guarantees is the same typecode — the fit is the thing you see. An
-  identity-coloured edge marks where the socket stops and its contents start.
+- **A dashed outline is exactly where a seated chip lands.** Not approximately:
+  the same element is the slot in both states, so the promise is structural. Every
+  slot is therefore drawn whole, typecode included, because a chip leads with its
+  own typecode cell and that cell has to come to rest over the one the slot was
+  asking for.
+- **Opaque means "match this"; the recess is free.** That one rule is what the
+  three block surfaces encode. A socket's typecode is the parent block's, painted
+  in the row's own colour, and a chip has to match it; the rest of the socket is a
+  recess, and a chip needs to match nothing there. A lock's picture is a statement
+  that must be matched token for token, so it is row colour throughout and has no
+  recess at all. The conclusion row — what the block gives rather than what it
+  needs — carries the third colour.
+- **Slot padding is CSS padding on the row**, above every row and both sides of
+  every row but the conclusion, which is flush left and flush with the block's
+  bottom edge. This is load-bearing rather than tidy: `outlinePath` derives each
+  row's position by accumulating the row above it from x = 0, and border-box
+  padding keeps the row boxes tiling with no gaps while the content inside moves.
+  A grid `row-gap` or a row `margin` looks identical and breaks the outline.
+- **Socket row**: a dashed box holding the typecode the row expects and a
+  placeholder recess. The variable floats on the recess as the same chip it is
+  everywhere else — it says which socket this is without claiming to be something
+  to match. `canSeatSocket` guarantees the typecodes agree, so a filled socket
+  shows one typecode cell and not two; an identity-coloured edge marks the slot's
+  left edge once the dashes are gone.
 - **Lock row**: a dashed full-silhouette **picture** of the required statement,
   drawn with the same token renderer, variable chips where sockets are unfilled.
   Inert until all sockets are filled; rewrites live as they fill; then
@@ -221,10 +241,14 @@ has an external referent rather than being invented here.
 - **Outline component**: perimeters are never drawn edge-by-edge per row. Rows
   lay out in a grid and each block outline is one absolutely-positioned SVG
   `<path>` whose staircase geometry comes from measured row rects. One
-  `BlockOutline` serves three uses: card perimeter (solid), lock picture
-  (dashed), legal-target highlight (hot dashed). It is drawn *over* the rows —
-  they are opaque, and each carries the block background, so the union of the
-  rows is the staircase and the outline needs no fill.
+  `BlockOutline` serves three uses: card perimeter (solid), slot box (dashed),
+  legal-target highlight (hot dashed). Absolute positioning is why the slot uses
+  it rather than a dashed border — a border would make the empty box and the
+  filled one different sizes. It is drawn *over* its rows, which are opaque and
+  carry the background, so the outline needs no fill.
+- **The row is the drop target, not the slot box.** `data-slot` sits on the row
+  so the slot's padding counts as part of it, rather than leaving a dead band
+  above every slot where a release falls through to the bench.
 - **Wrap**: every token is its own element with `white-space: nowrap`, so the
   only break points are the gaps between tokens. No hyphenation, no break inside
   `->`, and a slot chip moves whole to the next line rather than splitting.
@@ -326,6 +350,12 @@ Built or specified, then dropped. Recorded so they are not re-proposed.
 - **Chunky coloured slabs, one hue per block family** — the family hues collided
   with per-variable identity colours. Replaced by white blocks with a black
   perimeter, colour reserved for *type* and *identity*.
+- **Filled colour boxes behind the typecode cells** — a wff cell in mint, a `⊢`
+  cell in cream. They competed with the block surfaces, which had to be free to
+  say something of their own about matching. The typecodes keep the ink.
+- **A recess inside a lock's dashed picture**, matching the socket's. It made
+  every slot look alike at the cost of the distinction worth drawing: a lock has
+  to be matched token for token, so none of it is open space.
 - **Quiet typographic direction** (warm paper, thin notches, no colour) — lost to
   the chunky, diagrammatic direction.
 - **One bordered box per row** — replaced by the single measured SVG outline.

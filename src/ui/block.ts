@@ -41,33 +41,60 @@ function chipRow(chip: Chip, variables: ReadonlySet<string>, modifier: string): 
   return seated;
 }
 
+/** The dashed box a chip lands in, kept whether the slot is empty or full. */
+function slotBox(): HTMLElement {
+  const element = document.createElement("span");
+  element.className = "slot";
+  return element;
+}
+
 /**
- * A socket row: the type the row expects, then either the notch waiting for it
- * or the chip that filled it.
+ * A socket row: a dashed box holding the typecode the row expects and a
+ * placeholder for the expression that will satisfy it.
  *
- * The notch is typecode-shaped on purpose. A seated chip leads with its own
- * typecode cell, which is the same shape, so it lands exactly where the notch
- * was — only the typecode part has to fit, and the fit is the thing you see.
+ * The dashed box spans **both**, because it marks where a seated chip lands and
+ * a chip leads with its own typecode cell. So the chip's typecode comes to rest
+ * exactly over the one the socket was asking for — the fit is the thing you see,
+ * and there is never a moment with two typecodes side by side.
+ *
+ * Inside the box the typecode is opaque, in the row's own colour, and the
+ * placeholder is a recess. That is the whole rule the colours encode: what a
+ * chip covers opaquely, it has to match; the hole it also covers is free.
  */
-function socketRow(card: Card, socket: Socket, variables: ReadonlySet<string>): HTMLElement {
+function socketRow(card: Card, socket: Socket, variables: ReadonlySet<string>): Rendered {
   const element = row("socket");
   element.dataset["var"] = socket.var;
-  element.append(typecodeCell(socket.typecode));
 
   const slot = slotPath({ cardId: card.id, kind: "socket", var: socket.var });
+  const box = slotBox();
+  element.append(box);
+
   const fill = card.fills[socket.var];
   if (fill) {
     const seated = chipRow(fill, variables, "fill");
     seated.dataset["seated"] = slot;
-    element.append(seated);
-  } else {
-    const notch = document.createElement("span");
-    notch.className = "notch";
-    notch.textContent = glyph(socket.var);
-    notch.dataset["slot"] = slot;
-    element.append(notch);
+    box.append(seated);
+    return { element, dispose: () => {} };
   }
-  return element;
+
+  // The row, not the box, is the drop target: the slot's padding then counts as
+  // part of it rather than as a dead band above every slot.
+  element.dataset["slot"] = slot;
+
+  const { svg, path } = createOutline("picture");
+  const notch = document.createElement("span");
+  notch.className = "notch";
+  // The variable floats on the recess as the same chip it is everywhere else, so
+  // its identity colour comes from the one [data-var] indirection.
+  const name = document.createElement("span");
+  name.className = "token token--var";
+  name.dataset["var"] = socket.var;
+  name.dataset["token"] = socket.var;
+  name.textContent = glyph(socket.var);
+  notch.append(name);
+  box.append(svg, typecodeCell(socket.typecode), notch);
+
+  return { element, dispose: observeOutline(path, [box]) };
 }
 
 /**
@@ -83,10 +110,13 @@ function lockRow(card: Card, index: number, variables: ReadonlySet<string>): Ren
   const slot = slotPath({ cardId: card.id, kind: "lock", index });
   const key = card.keys[index];
 
+  const box = slotBox();
+  element.append(box);
+
   if (key) {
     const seated = chipRow(key, variables, "key");
     seated.dataset["seated"] = slot;
-    element.append(seated);
+    box.append(seated);
     return { element, dispose: () => {} };
   }
 
@@ -94,18 +124,15 @@ function lockRow(card: Card, index: number, variables: ReadonlySet<string>): Ren
   // still holds variables, so there is nothing definite to match against.
   const live = socketsFilled(card);
   element.classList.add(live ? "row--live" : "row--inert");
+  if (live) element.dataset["slot"] = slot;
 
-  const picture = document.createElement("span");
-  picture.className = "picture";
-  if (live) picture.dataset["slot"] = slot;
   const { svg, path } = createOutline("picture");
   const inner = document.createElement("span");
   inner.className = "picture-row";
   inner.append(
     ...statementCells(spans(card.template.locks[index], expansion(card.fills)), variables),
   );
-  picture.append(svg, inner);
-  element.append(picture);
+  box.append(svg, inner);
 
   return { element, dispose: observeOutline(path, [inner]) };
 }
@@ -155,6 +182,12 @@ function markFlash(element: HTMLElement, ref: SlotRef): void {
  * A card: one row per socket, one per lock, then the conclusion. Each row is
  * shrink-to-fit, so the silhouette is a staircase that changes as slots fill —
  * and a collapsed card is the conclusion row alone, which still wraps.
+ *
+ * The slot padding is CSS padding *on the row*, which is not a detail: it keeps
+ * the row boxes tiling with no gaps between them and every one of them starting
+ * at x = 0, so `outlinePath` still gets the staircase it is written for while the
+ * content inside moves. A grid gap or a row margin would look identical and
+ * would break the outline.
  */
 export interface RenderOptions {
   /** The seat that just happened, whose spans should flash. */
@@ -190,7 +223,11 @@ export function renderCard(
 
   if (!card.collapsed) {
     if (options.sockets ?? true) {
-      for (const socket of card.template.sockets) rows.push(socketRow(card, socket, variables));
+      for (const socket of card.template.sockets) {
+        const row = socketRow(card, socket, variables);
+        rows.push(row.element);
+        disposers.push(row.dispose);
+      }
     }
     card.template.locks.forEach((_, index) => {
       const lock = lockRow(card, index, variables);
