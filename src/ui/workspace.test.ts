@@ -87,12 +87,8 @@ describe("clamp", () => {
 
   it("keeps a card inside the bench", () => {
     expect(clamp(300, 200, { w: 100, h: 50 }, bench)).toEqual({ x: 300, y: 200 });
-    expect(clamp(-40, -40, { w: 100, h: 50 }, bench)).toEqual({ x: 8, y: 34 });
+    expect(clamp(-40, -40, { w: 100, h: 50 }, bench)).toEqual({ x: 8, y: 8 });
     expect(clamp(9999, 9999, { w: 100, h: 50 }, bench)).toEqual({ x: 492, y: 442 });
-  });
-
-  it("keeps clear of the bench label", () => {
-    expect(clamp(50, 0, { w: 100, h: 50 }, bench).y).toBe(34);
   });
 
   it("gives up gracefully on a card wider than the bench", () => {

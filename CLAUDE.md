@@ -182,6 +182,10 @@ that *measures* the card to work out where to move it is measuring a box the
 overflow already crushed. `width: max-content` makes the width independent of
 position; the cap comes from `max-width`.
 
+**The built page must carry a `nav` and exactly one `h1`**, whatever the design
+wants — `spec/invariants.test.ts` reads `dist/`, so taking chrome off the screen
+means hiding those two, not deleting them.
+
 **Measure the thing, not the window.** Blocks are capped against the bench's
 measured width, never `vw`: a 520px block "fits" 78vw while overflowing a 380px
 bench, because the bench is one flex item inside a padded page.

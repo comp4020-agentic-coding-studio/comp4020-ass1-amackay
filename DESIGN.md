@@ -165,6 +165,23 @@ has an external referent rather than being invented here.
 
 ## Rendering
 
+- **The canvas is the page.** The bench fills the viewport edge to edge, nothing
+  scrolls but the tray's block list, and there is no chrome band above it: the
+  only visible text the artefact carries is its `h1`, in the tray's head. The
+  `nav` landmark and the regions' names are in the document but off the screen,
+  because `spec/invariants.test.ts` requires a nav and exactly one `h1` on every
+  built page and the canvas has no room to spend on either.
+- **The palette is a tray floating over the canvas** — a drawer flush to the left
+  edge at ≥700px, a band across the top below that, sized so palette and bench
+  are visible together at 390×844. It carries a grip mark on its inner edge; the
+  gesture that would use it is not built. The dot grid runs underneath it: the
+  tray floats over a continuous surface rather than sitting beside a shorter one.
+- **The tray's footprint and the placement area are two different things.** Cards
+  are clamped to the canvas *minus* the tray, so nothing can ever land where the
+  tray would hide it. That is `.bench-cards` being inset in CSS and nothing more:
+  it is already the element `capBlocks`, `reclamp` and `benchPoint` measure, so
+  no code anywhere has a notion of a tray. Releasing a piece over the tray
+  discards it, exactly as releasing it over the palette always did.
 - **Block shape**: a card is a vertical stack of left-aligned rows — one per
   socket, one per lock, then the conclusion. **Each row is shrink-to-fit**, so
   the silhouette is a staircase that changes as slots fill. Collapsed cards
@@ -249,6 +266,12 @@ Built or specified, then dropped. Recorded so they are not re-proposed.
 - **One bordered box per row** — replaced by the single measured SVG outline.
   Border arithmetic per edge broke every time a row changed width.
 - **Bench as an ordered list of full-width rows** — replaced by a free canvas.
+- **Two bordered panels side by side in a centred 1240px column** — replaced by
+  the full-viewport canvas with the tray over it. The column put the bench below
+  the fold at 390×844 (it started at y=1036 of a 1475px page), so palette and
+  bench were never on screen together and `touch-action: none` meant a drag could
+  not scroll to reach it. Page height was set by the palette's length, so the
+  bench scrolled away whenever the palette was taller than the window.
 - **`✕` delete button on every card** — replaced by drag-out-of-bench, and then
   by the corner delete target.
 - **Viewport-relative block max-width (`78vw`)** — a 520px block "fits" 78vw
@@ -286,8 +309,12 @@ Built or specified, then dropped. Recorded so they are not re-proposed.
   bench. Whether there is a "keep to palette" gesture, a starter/derived palette
   split, and its naming: undecided. Don't build; don't foreclose (chips are
   immutable and self-contained, so any future mechanism is additive).
-- **Page framing** — title, a sentence or two, one ignorable invitation; prose,
-  not architecture. Due before shipping.
+- **Page framing** — the title sits in the tray's head; the sentence or two and
+  the one ignorable invitation are still to write. Prose, not architecture. Due
+  before shipping.
+- **Showing and hiding the tray** — the drawer is drawn as something that could
+  be put away, and nothing puts it away. Whether the gesture exists, and whether
+  the canvas reclaims the space when it does: undecided.
 
 ## Status
 

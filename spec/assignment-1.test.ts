@@ -36,14 +36,12 @@ describe('spec: "deployed and live at its public GitHub Pages URL by the deadlin
   // deploy job and `/comp4020:preflight`. What's checkable here is the local
   // precondition: a root index.html whose references survive the move to a
   // project path.
-  it("builds the page Pages will serve", () => {
-    const doc = builtIndex();
-    expect(
-      doc.querySelector("main")?.textContent?.trim(),
-      "dist/index.html built, but its <main> is empty — nothing to deploy.",
-    ).toBeTruthy();
-  });
-
+  //
+  // A test asserting <main> holds text in the BUILT page was here, and was
+  // wrong for this artefact: the canvas is rendered from script, so an empty
+  // <main> in the shipped HTML is what correct looks like. The claim it meant
+  // to make — the page has something to show — is held below, by the test that
+  // imports main.ts and requires [data-core-output] to change.
   it("references no asset by a root-absolute path", () => {
     // The site is served from …github.io/comp4020-ass1-amackay/, so a
     // root-absolute href resolves to the wrong origin path and 404s on the

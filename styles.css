@@ -46,6 +46,13 @@
   /* geometry */
   --border-w: 2px;
   --radius: 0;
+
+  /* The tray's footprint, and the inset it costs the placement area. The dot
+     grid runs full bleed underneath it; only these say where cards may land. */
+  --tray-w: 308px;
+  --tray-h: 38dvh;
+  --bench-inset-x: var(--tray-w);
+  --bench-inset-y: 0px;
   --pad: 9px;
   --tc-w: 46px;
   --token-gap-x: 7px;
@@ -82,75 +89,82 @@
   box-sizing: border-box;
 }
 
+/* The canvas is the page: it fills the viewport and nothing here scrolls. The
+   one scroller is the tray's block list, and only when it has to be. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
-  padding: 18px;
   background: var(--page-bg);
   color: var(--ink);
   font-family: var(--sans);
   line-height: 1.5;
 }
 
-.page-head {
-  display: flex;
-  gap: 14px;
-  align-items: baseline;
-  justify-content: space-between;
-  max-width: 1240px;
-  margin: 0 auto 14px;
+/* In the document for the landmark and the heading, off the screen because the
+   page is one canvas and a band of chrome above it is canvas spent on nothing. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
-.page-head h1 {
+.workspace {
+  position: relative;
+  height: 100dvh;
+}
+
+/* A drawer, flush to the left edge and floating over the canvas. It does not
+   scroll itself — its block list does — so the grip mark below stays put
+   instead of scrolling away with the blocks. */
+.tray {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: var(--tray-w);
+  height: 100%;
+  overflow: hidden;
+  border-right: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  box-shadow: 5px 0 16px rgb(20 26 40 / 10%);
+}
+
+/* A grip on the inner edge: enough to read as a drawer that could be pushed
+   away, drawn rather than built, so nothing here looks like a control that
+   does not exist yet. */
+.tray::after {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  width: 5px;
+  height: 30px;
+  border-right: 1px solid var(--label);
+  border-left: 1px solid var(--label);
+  content: "";
+  opacity: 0.5;
+  transform: translateY(-50%);
+}
+
+.tray-head {
+  flex: none;
+  padding: 12px 14px 11px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.tray-head h1 {
   margin: 0;
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.01em;
-}
-
-.page-head nav a {
-  color: var(--meta);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-decoration: none;
-  text-transform: uppercase;
-}
-
-/* Two regions on one wrapping flex row. */
-.workspace {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  max-width: 1240px;
-  margin: 0 auto;
-}
-
-/* min-width: 0 against flexbox's `auto` default, which sizes an item to its
-   min-content and would let a wide block push the region past the viewport —
-   the region would then hand that width back as the block's 100% cap, and
-   nothing would ever wrap. */
-.region {
-  position: relative;
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius);
-  background: var(--panel-bg);
-}
-
-.region-label {
-  margin: 0;
-  color: var(--label);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  pointer-events: none;
-  text-transform: uppercase;
-}
-
-.palette {
-  flex: 1 1 240px;
-  max-width: 308px;
 }
 
 /* Palette blocks are the same structure at 0.78 scale — same tokens, smaller
@@ -170,28 +184,42 @@ body {
   --block-max-w: 100%;
 
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 14px;
   align-items: flex-start;
-  margin-top: 12px;
+  padding: 12px 14px 18px;
+
+  /* The page's only scroller, and only when the list is taller than the tray.
+     `contain` keeps a flick at the end of the list from chaining outward. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
+/* The canvas, edge to edge. The dot grid runs under the tray: the tray floats
+   over a continuous surface rather than sitting beside a shorter one. */
 .bench {
-  display: flex;
-  flex: 3 1 440px;
-  flex-direction: column;
-  min-height: 620px;
+  position: absolute;
+  inset: 0;
   background:
     radial-gradient(var(--bench-dot) 1.5px, transparent 1.6px) 0 0 / 22px 22px,
     var(--panel-bg);
 }
 
-/* A free canvas: cards stay where they were put, and overlap freely. The bench
-   scrolls, which is the escape hatch for a card that grew past the visible area. */
+/* Where cards may actually land: the canvas minus the tray's footprint, so a
+   card can never end up hidden under the tray.
+   This element is also the one everything measures — app.ts caps --block-max-w
+   against its width, clamps cards to its box, and drag.ts converts pointer
+   coordinates through its rect — so insetting it is the whole mechanism, and
+   the geometry needs no notion of a tray anywhere in the code.
+   `isolation` because a card's z-index grows without bound; without a stacking
+   context of its own, a card would eventually paint over the tray. */
 .bench-cards {
-  position: relative;
-  flex: 1;
-  margin-top: 12px;
+  position: absolute;
+  inset: var(--bench-inset-y) 0 0 var(--bench-inset-x);
+  isolation: isolate;
+
+  /* The escape hatch for a card wider than the bench; never chrome otherwise. */
   overflow: auto;
 }
 
@@ -315,18 +343,20 @@ body {
   pointer-events: none;
 }
 
-/* While something is carried the whole bench reads as a live drop target. */
-.is-carrying .bench {
-  border-color: var(--bench-border-active);
+/* While something is carried, the region a card can land in reads as a live
+   drop target — which is also the clearest statement that the tray's footprint
+   is not part of it. */
+.is-carrying .bench-cards {
+  box-shadow: inset 0 0 0 var(--border-w) var(--bench-border-active);
 }
 
-/* Pinned in a corner and shown only while something is in the air — there is
-   nothing to discard the rest of the time. Releasing clean off the bench
-   discards too; this is the target you can aim at. */
+/* Pinned in the canvas's own corner, clear of the tray, and shown only while
+   something is in the air — there is nothing to discard the rest of the time.
+   Releasing clean off the bench discards too; this is the target you can aim at. */
 .delete-target {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
   z-index: 70;
   display: none;
   gap: 8px;
@@ -505,17 +535,34 @@ body {
   color: var(--ink);
 }
 
-/* The palette's 308px cap keeps it narrow beside a wide bench; once the bench
-   wraps below it there is nothing to be narrow beside. The threshold is where
-   the flex bases stop fitting: 240 + 14 + 440, plus the page's 36px padding.
-   HANDOFF wanted no media queries, but its own numbers leave the palette
-   short of the line it is alone on. */
-@media (width < 730px) {
-  .palette {
-    max-width: none;
+/* The drawer becomes a tray across the top. The threshold is where the drawer
+   stops leaving a canvas worth working in: its 308px plus about 380px of bench.
+   Only the tray's footprint and the inset it costs change — the geometry is the
+   same rules reading different numbers. */
+@media (width < 700px) {
+  :root {
+    --bench-inset-x: 0px;
+    --bench-inset-y: var(--tray-h);
   }
 
-  .bench {
-    min-height: 420px;
+  .tray {
+    width: 100%;
+    height: var(--tray-h);
+    border-right: 0;
+    border-bottom: 1px solid var(--panel-border);
+    box-shadow: 0 5px 16px rgb(20 26 40 / 10%);
+  }
+
+  .tray::after {
+    top: auto;
+    right: 50%;
+    bottom: 5px;
+    width: 30px;
+    height: 5px;
+    border-right: 0;
+    border-bottom: 1px solid var(--label);
+    border-left: 0;
+    border-top: 1px solid var(--label);
+    transform: translateX(50%);
   }
 }

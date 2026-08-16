@@ -362,12 +362,15 @@ export class Workspace {
 }
 
 export const EDGE = 8;
-export const TOP_EDGE = 34; // clear of the "BENCH" label
 
 /**
  * Keep a card inside the bench. If it is wider than the bench there is nothing
  * to clamp against, so it goes to the left edge and overflows to the right,
  * where the bench's own scroll can reach it.
+ *
+ * The box passed in is the *placement area*, which is the canvas minus the
+ * tray's footprint — so one uniform edge is right on all four sides, and this
+ * needs no notion of the tray at all.
  */
 export function clamp(
   x: number,
@@ -379,6 +382,6 @@ export function clamp(
   const maxY = bench.h - card.h - EDGE;
   return {
     x: maxX < EDGE ? EDGE : Math.min(Math.max(x, EDGE), maxX),
-    y: maxY < TOP_EDGE ? TOP_EDGE : Math.min(Math.max(y, TOP_EDGE), maxY),
+    y: maxY < EDGE ? EDGE : Math.min(Math.max(y, EDGE), maxY),
   };
 }

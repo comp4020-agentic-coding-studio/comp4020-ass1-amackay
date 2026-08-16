@@ -7,15 +7,21 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <header class="page-head">
-      <h1>Proof blocks</h1>
-      <nav aria-label="Primary">
-        <a href="./" aria-current="page">Sandbox</a>
-      </nav>
-    </header>
+    <!-- The page carries no visible navigation: it is one canvas. The landmark
+         is here because spec/invariants.test.ts requires every page to have one. -->
+    <nav class="visually-hidden" aria-label="Primary">
+      <a href="./" aria-current="page">Sandbox</a>
+    </nav>
     <main class="workspace">
-      <section class="region palette" aria-label="Palette" data-palette>
-        <p class="region-label">Palette</p>
+      <!-- The canvas is the page. It runs edge to edge and the tray floats over
+           it, so the bench comes first in the DOM and the tray paints on top. -->
+      <section class="bench" aria-label="Bench" data-bench>
+        <div class="bench-cards" data-bench-cards data-core-output></div>
+      </section>
+      <section class="tray" aria-label="Palette" data-palette>
+        <div class="tray-head">
+          <h1>Proof blocks</h1>
+        </div>
         <!-- The blocks inside are generated and each carries data-core-interaction
              too; it is on the container as well so the built page names the
              interaction without having run any script. -->
@@ -28,15 +34,11 @@
           aria-label="Blocks to drag onto the bench"
         ></div>
       </section>
-      <section class="region bench" aria-label="Bench" data-bench>
-        <p class="region-label">Bench</p>
-        <div class="bench-cards" data-bench-cards data-core-output></div>
-      </section>
+      <div class="delete-target" data-delete aria-hidden="true">
+        <span class="delete-target__mark">&times;</span>
+        <span class="delete-target__label">Drop to discard</span>
+      </div>
     </main>
-    <div class="delete-target" data-delete aria-hidden="true">
-      <span class="delete-target__mark">&times;</span>
-      <span class="delete-target__label">Drop to discard</span>
-    </div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
