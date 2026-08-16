@@ -28,53 +28,65 @@
 }
 
 :root {
-  /* surfaces */
-  --page-bg: #eeeff2;
-  --panel-bg: #f7f8fa;
-  --panel-border: #d8dbe2;
-  --bench-border-active: #7f8798;
-  --bench-dot: rgb(120 132 160 / 26%);
-  --block-bg: #fff;
-  --ink: #111;
-  --label: #8b92a6;
-  --meta: #6f7480;
+  /* Three kinds of colour on this page, and each gets a treatment rather than
+     just a hue — which is what makes the categories tellable apart before you
+     know what any single colour means:
 
-  /* Typecodes are colour-coded in the ink alone: is this a claim or a piece of
-     syntax. A filled cell behind them competed with the slot colours, which have
-     to carry a meaning of their own. */
-  --tc-wff-ink: #0d4d46;
-  --tc-stmt-ink: #5b3608;
+       surfaces    achromatic. The only large areas there are, and the only ones
+                   carrying no meaning of their own.
+       typecodes   dark saturated ink, never a fill.
+       variables   a light saturated chip with its own dark ink.
 
-  /* variable identity — one hue per variable the palette declares */
-  --ph-line: #6d4bd0;
-  --ph-fill: rgb(109 75 208 / 10%);
-  --ph-ink: #4a2ea8;
-  --ps-line: #1f6fc4;
-  --ps-fill: rgb(31 111 196 / 10%);
-  --ps-ink: #14508f;
-  --ch-line: #177a5c;
-  --ch-fill: rgb(23 122 92 / 10%);
-  --ch-ink: #0e5741;
+     So a coloured patch is a variable, coloured letters are a typecode, and
+     anything grey is somewhere for those to sit. Amber is reserved for what the
+     page is doing right now — a legal target, a rewrite — and appears nowhere in
+     the three categories, so it can never be mistaken for one. */
 
-  /* interaction accent: legal target and rewrite flash. Applied in M3. */
-  --hot-line: #9a7100;
-  --hot-fill: rgb(255 203 60 / 38%);
-  --hot-ink: #5b4200;
-  --hot-ring: rgb(255 203 60 / 35%);
-  --flash-bg: rgb(255 203 60 / 85%);
+  /* Surfaces: one cool grey ramp, and monotonic, so no two are ambiguous —
+     canvas darkest, then the tray, then a block's body, then a statement. The
+     canvas is deliberately a mid grey and not near-white: blocks are the figures
+     here, and they only read as figures against a ground with some tone to it. */
+  --canvas-bg: #b8c6d8;
+  --panel-bg: #c4d0e0;
+  --panel-border: #9db0c8;
+  --bench-dot: rgb(52 74 104 / 26%);
+  --bench-border-active: #3f5670;
+  --block-bg: #dfe6f0;
+  --conclusion-bg: #fff;
+  --ink: #0f172a;
+  --label: #566577;
+  --meta: #45536a;
 
-  /* a token that arrived by substitution rather than from the template */
-  --prov-bg: rgb(17 17 17 / 5.5%);
+  /* Typecodes. Not two peers: `⊢` is a claim and everything else is syntax, so
+     the claim gets the colour and syntax keeps the ink. Reading down the typecode
+     column then tells you which rows of a block are proof and which are grammar,
+     which is worth more than two hues competing. */
+  --tc-stmt-ink: #146b32;
+  --tc-wff-ink: #131c2e;
 
-  /* Two surfaces, and the shape says the rest.
-     --block-bg       what the block needs: the slot rows and the padding around
-                      them, which is also every strip between two rows
-     --conclusion-bg  what it gives: the bottom row — and any chip, because a chip
-                      is a collapsed derivation and wears the same surface whether
-                      it is loose on the bench or seated in a slot
-     Warm against the neutral rows, so the two read as different kinds of thing
-     rather than as two depths of the same one. */
-  --conclusion-bg: #f6f3ee;
+  /* Variable identity: one hue per variable, spread far enough apart to survive
+     being small. Opaque rather than a tint of the line colour — a chip has to be
+     the same colour on a white statement, on a block's grey body, and hanging
+     off the side of a block over the canvas, and an alpha fill is a different
+     colour on each of those. */
+  --ph-fill: #d3c2ff;
+  --ph-ink: #3f1580;
+  --ps-fill: #9fe4f2;
+  --ps-ink: #0a4250;
+  --ch-fill: #ffbfcc;
+  --ch-ink: #8b0e33;
+
+  /* Interaction, and nothing else: a legal target and the rewrite flash. */
+  --hot-line: #a35a06;
+  --hot-fill: rgb(251 191 36 / 45%);
+  --hot-ink: #6b3d05;
+  --hot-ring: rgb(251 191 36 / 45%);
+  --flash-bg: rgb(250 204 21 / 85%);
+
+  /* A token that arrived by substitution rather than from the template. Grey,
+     because it is the one thing that is *not* a category: it says where a token
+     came from, over the top of whatever colour that token already has. */
+  --prov-bg: rgb(15 23 42 / 8%);
 
   /* geometry */
   --border-w: 2px;
@@ -155,7 +167,7 @@ body {
 
 body {
   margin: 0;
-  background: var(--page-bg);
+  background: var(--canvas-bg);
   color: var(--ink);
   font-family: var(--sans);
   line-height: 1.5;
@@ -278,7 +290,7 @@ body {
   inset: 0;
   background:
     radial-gradient(var(--bench-dot) 1.5px, transparent 1.6px) 0 0 / 22px 22px,
-    var(--panel-bg);
+    var(--canvas-bg);
 }
 
 /* Where cards may actually land: the canvas minus the tray's footprint, so a
@@ -376,18 +388,22 @@ body {
   background: var(--conclusion-bg);
 }
 
-/* Inert while any socket is unfilled: the picture still holds variables, so
-   there is nothing definite to match against yet. */
-.row--inert {
-  opacity: 0.66;
-}
-
 /* What a slot holds, empty or full. For a socket that is the typecode alone, so
    the block's edge lands just past it. */
 .slot {
   position: relative;
   display: inline-flex;
   min-width: 0;
+}
+
+/* Inert while any socket is unfilled: the picture still holds variables, so
+   there is nothing definite to match against yet.
+
+   Fading the contents and not the row, because fading the row makes it
+   translucent — and against a canvas with real tone in it, a translucent row
+   reads as a hole in the block rather than as a statement not yet in force. */
+.row--inert .slot {
+  opacity: 0.6;
 }
 
 /* The variable's name, hanging past the block's edge.
@@ -524,19 +540,16 @@ body {
 /* One indirection, so a notch, a variable chip and a lock outline all read the
    same variable's colour from one place. */
 [data-var="ph"] {
-  --var-line: var(--ph-line);
   --var-fill: var(--ph-fill);
   --var-ink: var(--ph-ink);
 }
 
 [data-var="ps"] {
-  --var-line: var(--ps-line);
   --var-fill: var(--ps-fill);
   --var-ink: var(--ps-ink);
 }
 
 [data-var="ch"] {
-  --var-line: var(--ch-line);
   --var-fill: var(--ch-fill);
   --var-ink: var(--ch-ink);
 }

@@ -228,6 +228,29 @@ has an external referent rather than being invented here.
   whether it is loose on the bench or seated. What says it is seated is where it
   sits, inset with the block's padding around it, and not a colour it holds only
   while it is there.
+- **Three kinds of colour, three treatments.** Surfaces are achromatic, typecodes
+  are dark saturated ink and never a fill, variables are a light saturated chip
+  with their own dark ink. So a coloured patch is a variable, coloured letters are
+  a typecode, and anything grey is somewhere for those to sit — which is legible
+  before the visitor knows what a single one of the colours means. Amber belongs
+  to what the page is doing *now* — a legal target, a rewrite — and appears in
+  none of the three, so it can never be mistaken for one.
+  Consequences worth stating, because each was a decision:
+  - **The surfaces are one monotonic ramp** — canvas, tray, block body, statement,
+    darkest to lightest. The canvas is a mid grey rather than near-white, because
+    blocks are the figures here and only read as figures against a ground with
+    tone in it. Statements are white, where the maths wants to be.
+  - **The typecodes are not two peers.** `⊢` is a claim and everything else is
+    syntax, so the claim takes the colour (green) and syntax keeps the ink.
+    Reading down the typecode column then says which rows are proof and which are
+    grammar, which is worth more than two hues competing for attention.
+  - **Variable fills are opaque, not a tint of a line colour.** A chip has to be
+    the same colour on a white statement, on a block's grey body, and hanging off
+    a block's side over the canvas — and an alpha fill is a different colour on
+    each of those, which would break the one thing the overhang promises.
+  - **Inert lock rows fade their contents, not the row.** Fading the row makes it
+    translucent, and against a canvas with tone in it a translucent row reads as a
+    hole in the block rather than as a statement not yet in force.
 - **Slot padding is CSS padding on the row**, on all four sides of every row but
   the conclusion, which has none — flush left, flush right, flush with the block's
   bottom edge, and the strip above it belonging to the last slot row. So a boundary
@@ -358,6 +381,9 @@ Built or specified, then dropped. Recorded so they are not re-proposed.
 - **Chunky coloured slabs, one hue per block family** — the family hues collided
   with per-variable identity colours. Replaced by white blocks with a black
   perimeter, colour reserved for *type* and *identity*.
+- **The near-white canvas** it all sat on for most of prototyping, which made
+  every block a white shape on a white ground and the whole page one tone. The
+  canvas carries real tone now so the blocks can be the figures.
 - **Filled colour boxes behind the typecode cells** — a wff cell in mint, a `⊢`
   cell in cream. They competed with the block surfaces, which had to be free to
   say something of their own about matching. The typecodes keep the ink.
