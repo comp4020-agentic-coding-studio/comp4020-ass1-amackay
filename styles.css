@@ -50,10 +50,10 @@
   /* The tray's footprint, and the inset it costs the placement area. The dot
      grid runs full bleed underneath it; only these say where cards may land.
      The default width is measured, not chosen: the widest template conclusion
-     (ax-3) is 337px at the palette's scale, and this is that plus the column's
-     padding — so nothing in the palette wraps until the visitor drags it
-     narrower. The handle exists for the statements that are wider still. */
-  --tray-w: 372px;
+     (ax-2) is 303px at the palette's scale, and this is that plus the column's
+     padding and room to spare — so nothing in the palette wraps until the
+     visitor drags it narrower. The handle is for statements wider still. */
+  --tray-w: 360px;
   --tray-h: 38dvh;
   --bench-inset-x: var(--tray-w);
   --bench-inset-y: 0px;
@@ -73,12 +73,16 @@
 
   /* type */
 
-  /* The math fonts are not decoration: set.mm writes variables with the
-     Mathematical Alphanumeric Symbols block (ph is U+1D711, not Greek phi), and
-     most monospace faces do not cover it. Without a named fallback the browser
-     picks one per glyph and the variables land in whatever it finds. */
-  --mono: "IBM Plex Mono", ui-monospace, sfmono-regular, menlo, "DejaVu Sans Mono",
-    "Cambria Math", "STIX Two Math", "Noto Sans Math", "DejaVu Math TeX Gyre", monospace;
+  /* Faces that are actually installed, rather than maths faces that mostly are
+     not. This stack used to end in Cambria Math / STIX / Noto Maths, named to
+     cover the Mathematical Alphanumeric Symbols set.mm writes variables with —
+     but naming a font almost nobody has is not coverage, and the variables
+     landed in a different face from the operators beside them, differently on
+     each machine. src/notation folds those characters to ordinary Greek and
+     Latin instead, so all this has to cover now is letters, arrows and ⊢. The
+     last two entries are for ⊢ alone, which Consolas lacks. */
+  --mono: ui-monospace, "DejaVu Sans Mono", "Liberation Mono", menlo, consolas,
+    "Segoe UI Symbol", "Cambria Math", monospace;
   --sans: "IBM Plex Sans", system-ui, sans-serif;
   --token-size: 17px;
   --token-weight: 600;
@@ -541,6 +545,15 @@ body {
   background: var(--prov-bg);
 }
 
+/* set.mm says "variable" in the codepoint — its variables are the italic
+   letters of the Mathematical Alphanumeric Symbols block. The renderer folds
+   those to ordinary letters so they render the same everywhere, which spends
+   that distinction; this is where it is bought back. */
+.token--var,
+.notch {
+  font-style: italic;
+}
+
 .token--var {
   padding: 1px var(--var-pad-x) 2px;
   background: var(--var-fill, var(--prov-bg));
@@ -608,12 +621,16 @@ body {
   }
 }
 
-/* Bench blocks come down a size where the canvas is too narrow to hold the
-   longest template at the full one. The threshold is measured, not chosen:
-   ax-2's conclusion is 400px unwrapped at 17px, and the block cap is the
-   canvas less a 26px gutter, so it stops fitting at about 426px of canvas —
-   which in this layout is the viewport. 460 leaves room for the marker's font
-   fallbacks to land differently from these.
+/* Bench blocks tighten where the canvas is too narrow to hold the longest
+   template unwrapped. The threshold is measured, not chosen: ax-2's conclusion
+   is 376px at the full size, and the block cap is the canvas less a 26px
+   gutter, so it stops fitting at about 402px of canvas — which in this layout
+   is the viewport. 460 leaves room for the marker's font fallbacks to measure
+   differently from these.
+
+   Mostly geometry rather than type: dropping the typecode cell, the row padding
+   and the variable chips gets ax-2 to 333px against a 364px cap at 390 wide,
+   for one step down in token size rather than the two it first took.
 
    The palette is untouched: it declares its own scale on `.palette-blocks`,
    which beats an inherited one, and it already fits. */
@@ -621,9 +638,9 @@ body {
   :root {
     --tc-w: 36px;
     --pad: 7px;
-    --token-size: 15px;
-    --tc-size: 14px;
-    --slot-size: 14px;
+    --token-size: 16px;
+    --tc-size: 15px;
+    --slot-size: 15px;
     --var-pad-x: 3px;
   }
 }

@@ -56,7 +56,7 @@ describe("tokenCell", () => {
   it("gives every token its own element, so breaks fall only between them", () => {
     const cell = tokenCell(spans(["(", "ph", "->", "ps", ")"], from({})), VARIABLES);
     expect([...cell.children].map((c) => c.textContent)).toEqual([
-      "(", "𝜑", "→", "𝜓", ")",
+      "(", "φ", "→", "ψ", ")",
     ]);
   });
 

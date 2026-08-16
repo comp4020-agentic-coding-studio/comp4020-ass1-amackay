@@ -265,9 +265,30 @@ under `src/logic` imports this. Token spans carry `data-token` with the ASCII, s
 slot paths, identity colours and the rewrite flash still address tokens by what
 the database calls them. An unmapped token renders as itself.
 
-`--mono` names math-capable fallbacks because set.mm writes variables in the
-Mathematical Alphanumeric Symbols block (`ph` is U+1D711, not Greek φ), which
-most monospace faces do not cover.
+**Mathematical Alphanumeric Symbols are folded to the letters they decompose
+to** — `𝜑` (U+1D711) to `φ`, `𝐴` to `A` — at render time, in `glyph()`. The
+extracted table keeps set.mm's own codepoints; the fold is the renderer's
+decision, and 383 of the 1,776 definitions are affected.
+
+The reason is font coverage, and it is not cosmetic: almost nothing has that
+block, so the browser resolves each of those characters against whatever face it
+can find, one glyph at a time — the variables arrived in a different style from
+the operators beside them, and a different one on each machine. The letters they
+fold to are in every general-purpose font.
+
+The cost is that set.mm encodes "this is a variable" in the codepoint, and the
+fold spends it; CSS italic on the tokens the palette declares as variables buys
+it back. Across the whole table the fold makes 29 token pairs indistinguishable
+(`th`/`theta` among them). None are in the propositional fragment either palette
+uses, and a test in `notation.test.ts` holds that line rather than trusting it.
+`scripts/notation-collisions.py` produced the number.
+
+`--mono` therefore names faces that are widely installed rather than
+math-capable ones that are not; its last two entries exist for `⊢` alone.
+
+**A self-hosted subset font is the only way to make this identical everywhere**
+rather than merely consistent, and it is not done: it needs a subsetting step
+this repo has no tooling for, and a font binary with its licence in the tree.
 
 ## Rejected
 

@@ -26,11 +26,61 @@ describe("the extracted table", () => {
     expect(glyph("<->")).toBe("↔");
     expect(glyph("-.")).toBe("¬");
     expect(glyph("|-")).toBe("⊢");
-    expect(glyph("ph")).toBe("𝜑");
-    expect(glyph("ps")).toBe("𝜓");
-    expect(glyph("ch")).toBe("𝜒");
     expect(glyph("(")).toBe("(");
     expect(glyph(")")).toBe(")");
+  });
+
+  it("keeps set.mm's own codepoints in the extracted table", () => {
+    // The table is what set.mm says, unedited: the variables are Mathematical
+    // Alphanumeric Symbols, not Greek letters that look like them.
+    expect(ALTHTMLDEF["ph"]).toBe("𝜑");
+    expect(ALTHTMLDEF["ps"]).toBe("𝜓");
+    expect(ALTHTMLDEF["ch"]).toBe("𝜒");
+  });
+});
+
+describe("folding Mathematical Alphanumeric Symbols", () => {
+  it("renders a variable as the letter it decomposes to", () => {
+    // U+1D711 to U+03C6. Almost no font has the first; every font has the
+    // second, which is the whole point — see src/notation/index.ts.
+    expect(glyph("ph")).toBe("φ");
+    expect(glyph("ps")).toBe("ψ");
+    expect(glyph("ch")).toBe("χ");
+    for (const token of ["ph", "ps", "ch"]) {
+      expect([...glyph(token)].map((c) => c.codePointAt(0) ?? 0)).toSatisfy(
+        (points: number[]) => points.every((point) => point < 0x1_d400),
+      );
+    }
+  });
+
+  it("leaves everything outside that block alone", () => {
+    // NFKD across the whole string would also flatten ℕ to N and ℝ to R, which
+    // are distinctions set.mm means. The fold is scoped to the one block whose
+    // characters no font has.
+    expect(glyph("NN")).toBe("ℕ");
+    expect(glyph("RR")).toBe("ℝ");
+    expect(glyph("->")).toBe("→");
+  });
+
+  it("makes no two tokens of a shipped palette look the same", () => {
+    // The real cost of the fold is collisions, and the only ones that matter
+    // are between tokens a palette actually uses. 29 pairs collide across the
+    // whole table; none of them are here, and this is what says so.
+    for (const palette of PALETTES) {
+      const tokens = new Set<string>();
+      for (const variable of palette.variables) tokens.add(variable.var);
+      for (const template of palette.templates) {
+        for (const token of [...template.locks.flat(), ...template.conclusion]) tokens.add(token);
+      }
+
+      const byGlyph = new Map<string, string[]>();
+      for (const token of tokens) {
+        const rendered = glyph(token);
+        byGlyph.set(rendered, [...(byGlyph.get(rendered) ?? []), token]);
+      }
+      const clashes = [...byGlyph].filter(([, sharing]) => sharing.length > 1);
+      expect(clashes, `tokens rendering identically: ${JSON.stringify(clashes)}`).toEqual([]);
+    }
   });
 
   it("leaves a typecode as its own word", () => {
