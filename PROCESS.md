@@ -1,83 +1,74 @@
 # Process overview
 
-<!-- TEMPLATE: this file is a shape to fill in, not a form. Replace everything
-     in it with your own overview, and delete this comment — `pnpm
-     check:evidence` will remind you if it's still here. -->
-
-A reading-guide to how the work came together --- a map to your process, not an
-essay about it. Markers read this file and follow its citations; they don't
-trawl the repo for evidence you didn't point at, so if a moment mattered, cite
-it.
-
-This file is the shape; the course site's
-[assessment page](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#what-you-submit)
-is the requirement, and each brief adds its own word count and moment count.
-
 ## What I built
 
-One paragraph: the thing, and the idea behind it.
+**Proof blocks** — a work-in-progress prototype that makes proof logic something
+you can handle, rather than something you type.
+
+It builds on [Metamath](https://us.metamath.org/)
+([Wikipedia](https://en.wikipedia.org/wiki/Metamath)), a theorem prover with an
+unusually small idea at its centre: every proof step is pure symbol
+substitution, checkable without knowing what any of the symbols mean. Its main
+library, `set.mm`, derives most of mathematics that way from a handful of axioms
+— which is what makes it worth a direct-manipulation interface: the rule for
+"is this step legal?" is simple enough to be *shown* rather than explained.
+
+So statements from `set.mm` are cards in a palette; dragging one onto the bench
+turns it into a block whose sockets accept only what unifies with them: a legal
+step physically fits, an illegal one won't seat.
+Substitution runs as a single simultaneous pass, statements render in set.mm's
+own notation, and each block's silhouette is cut from its own rows, so the shape
+carries the rule instead of a legend. Placing, seating, ejecting and a full
+keyboard route all work; the prototype stops short of a completed proof.
 
 ## The moments that mattered
 
-Three or four for an assignment; fewer is fine for a weekly prototype. Keep the
-list short so each moment has room to do all four jobs:
+### The correction went into the harness, not the next prompt
 
-1. **what happened** --- the problem, or the thing the agent got wrong
-2. **what you did instead of the obvious thing** --- the call you made, and why
-   it beat the obvious one
-3. **how you knew it was right** --- the check you ran, the viewport you looked
-   at, what you read before accepting the diff
-4. **the citation** --- a commit or commit range, a `CLAUDE.md` change, a check
-   that went from red to green, a prompt paired with the commit it produced
+Assignment 1 started from the template harness rather than the previous crit's:
+most of that file was rules earned by a different brief, and a stale rule is one
+the agent will still try to obey. What survived was a finding about the course's
+own CI — `linkinator` serves `dist/` at the domain root, so a base path turns
+*correct* links red — restated here alongside two more harness edits made before
+any feature code: naming the one case where committing red is right, and putting
+`src/` under `tsc` before the directory existed, since Vite only compiles what a
+page imports.
+[`16509c3...efa8ef0`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-amackay/compare/16509c3...efa8ef0)
 
-Jobs 2 and 3 are the ones the repo can't tell a reader on its own, so they're
-where the marks are. The strongest moments are the ones where a correction
-landed in the **harness** rather than in another prompt --- a rule added to
-`CLAUDE.md`, a check wired up, an attempt thrown away: re-prompting until it
-passes is the routine case, and changing what the agent works against is the
-skilled one.
+The upstream change was to the workspace-level `CLAUDE.md` above every
+deliverable repo — directions rewritten against what the agent got wrong in
+earlier weeks. Those three commits are what it produced here.
 
-Cite each moment as a link whose text is the commit hash or range and whose
-target is this repo's commit or compare URL, so a reader clicks straight to the
-evidence:
+### The brainstorm was committed before it was reviewed
 
-- one commit: [`a1b2c3d`](https://github.com/YOUR-ORG/YOUR-REPO/commit/a1b2c3d)
-- a range:
-  [`a1b2c3d...e4f5a6b`](https://github.com/YOUR-ORG/YOUR-REPO/compare/a1b2c3d...e4f5a6b)
+Concept and scope were worked out in a Claude Chat session and landed as
+`IDEA.md` and a first `DESIGN.md`, committed **verbatim, before review, so that
+the review would be a diff**
+([`ece6908`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-amackay/commit/ece6908)).
+That paid immediately: the draft was written without this repo in view, so it
+named a stack, a package manager and a PR workflow none of the sensors here use,
+and the review replaced them with what `CLAUDE.md` says. The same pass reopened
+what the draft had marked settled, each open question carrying the constraint it
+had to satisfy instead of an answer
+([`7784c76`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-amackay/commit/7784c76)).
 
-To pair a prompt with the commit it produced, quote the prompt (curated, not a
-full transcript) next to the citation:
+### The design study arrived as a handoff, then was folded away
 
-> the prompt, verbatim
+Visual and interaction refinement was done in Claude Design, which came back as
+`HANDOFF.md` and a rewritten `DESIGN.md`
+([`51c208e`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-amackay/commit/51c208e)).
+Once the build caught up, `IDEA.md` and `HANDOFF.md` were deleted in the same
+commit that made them stale, folded into the one file that is the implementation
+authority
+([`03a041f`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-amackay/commit/03a041f)).
 
-Screenshots are welcome where one carries the verification better than a
-sentence does. Commit the file to this repo and link it with a **relative**
-path, which is what makes it render on GitHub: `![alt text](docs/before.png)`.
-Images don't count towards the word count and don't replace the citation.
+### A rule that lived in prose became a sensor
 
-### A worked moment, for shape
-
-Delete this section along with the rest of the boilerplate --- it's here to show
-the four jobs in one paragraph, not to be imitated in content.
-
-> The date formatter kept coming back with `toLocaleDateString()` and no locale
-> argument, so the same build rendered differently on my machine and in CI. I'd
-> already re-prompted it twice, which fixed the line but not the habit, so the
-> third time I put the rule in `CLAUDE.md` instead
-> ([`3f9ac21`](https://github.com/YOUR-ORG/YOUR-REPO/commit/3f9ac21)) and added
-> a spec test that fails on a bare `toLocaleDateString`. That's what told me it
-> had actually taken: the test went red against the old code and green against
-> the new, and the next two features it wrote passed it without prompting
-> ([`3f9ac21...b7e0d14`](https://github.com/YOUR-ORG/YOUR-REPO/compare/3f9ac21...b7e0d14)).
-
-## Before you ship
-
-`pnpm check:evidence` verifies your citations resolve to real commits, that the
-current reflection entry is in `reflections/`, and that your `CLAUDE.md` is
-there --- before a marker ever opens the file. It checks that your map is
-traceable, not that it is good: the marker judges whether your small,
-deliberately chosen set of moments shows real judgement and reflection. A green
-check is not a substitute for that curation.
-
-Images are deliberately not checked, because whether one renders is visible the
-moment you look. Open this file on GitHub and look at it before you ship.
+`DESIGN.md` called "the logic layer imports no DOM" non-negotiable and gave the
+reason: logic bugs and pointer bugs must never be confusable. But a rule that
+exists only in prose is one the next commit can break with nothing going red — so
+it became a test that reads the layer's own modules and checks every import is
+relative, no browser global appears, no DOM type is named. It asserts the
+file list it found, so a glob matching nothing can't make the suite vacuous, and
+it was confirmed to fire by adding `document.title` and watching it go red
+([`3318c4d`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-amackay/commit/3318c4d)).
